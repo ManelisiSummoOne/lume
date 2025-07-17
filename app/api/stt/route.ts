@@ -14,8 +14,12 @@ export async function POST(req: NextRequest) {
       throw new Error("ELEVENLABS_API_KEY is not set.")
     }
 
+    // Convert File to ArrayBuffer and then to Blob for FormData
+    const arrayBuffer = await audioFile.arrayBuffer()
+    const audioBlob = new Blob([arrayBuffer], { type: audioFile.type || 'audio/wav' })
+
     const sttFormData = new FormData()
-    sttFormData.append("audio", audioFile, audioFile.name || "recording.wav")
+    sttFormData.append("audio", audioBlob, audioFile.name || "recording.wav")
     sttFormData.append("model_id", "eleven_multilingual_v2") // Or another suitable model
 
     const response = await fetch("https://api.elevenlabs.io/v1/speech-to-text", {
