@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
+import FormData from "form-data"
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,20 +15,25 @@ export async function POST(req: NextRequest) {
       throw new Error("ELEVENLABS_API_KEY is not set.")
     }
 
-    // Convert File to ArrayBuffer and then to Blob for FormData
+    // Convert File to Buffer for Node.js
     const arrayBuffer = await audioFile.arrayBuffer()
-    const audioBlob = new Blob([arrayBuffer], { type: audioFile.type || 'audio/wav' })
+    const buffer = Buffer.from(arrayBuffer)
 
+    // Use node FormData for compatibility
     const sttFormData = new FormData()
-    sttFormData.append("audio", audioBlob, audioFile.name || "recording.wav")
-    sttFormData.append("model_id", "eleven_multilingual_v2") // Or another suitable model
+    sttFormData.append("audio", buffer, {
+      filename: audioFile.name || "recording.wav",
+      contentType: audioFile.type || "audio/wav"
+    })
+    sttFormData.append("model_id", "eleven_multilingual_v2")
 
     const response = await fetch("https://api.elevenlabs.io/v1/speech-to-text", {
       method: "POST",
       headers: {
         "xi-api-key": elevenLabsApiKey,
+        ...sttFormData.getHeaders()
       },
-      body: sttFormData,
+      body: sttFormData as any,
     })
 
     if (!response.ok) {
