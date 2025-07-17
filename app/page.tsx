@@ -488,6 +488,27 @@ export default function LumeOSInterface() {
     }
   }, [showGrounding, groundingStep]) // Depend on showGrounding and groundingStep
 
+  // Play greeting on mount if voice response is enabled
+  useEffect(() => {
+    if (responseMode !== "voice") return;
+    let didCancel = false;
+    const playGreeting = async () => {
+      try {
+        const ttsResponse = await fetch("/api/tts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: "Hi, I'm Sera. How are you feeling today?" }),
+        });
+        if (!ttsResponse.ok || !ttsResponse.body) return;
+        if (!didCancel) await playAudioStream(ttsResponse.body);
+      } catch (e) {
+        // Optionally handle error
+      }
+    };
+    playGreeting();
+    return () => { didCancel = true; };
+  }, [responseMode]);
+
   const handleOpenWaitlist = () => {
     setShowWaitlistDialog(true)
   }
