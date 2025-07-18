@@ -598,19 +598,19 @@ export default function LumeOSInterface() {
       </div>
       {/* Floating Navigation */}
       <motion.nav
-        className="fixed top-6 left-1/2 transform -translate-x-1/2 z-50"
+        className="fixed top-6 left-1/2 transform -translate-x-1/2 z-50 w-full px-2"
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.8, ease: "easeOut" }}
       >
-        <div className="bg-white/20 backdrop-blur-md rounded-full px-6 py-3 border border-white/30 shadow-lg">
-          <div className="flex items-center justify-between gap-8">
-            <motion.div className="text-2xl font-light text-gray-800 tracking-wide" whileHover={{ scale: 1.05 }}>
+        <div className="bg-white/20 backdrop-blur-md rounded-full px-2 py-3 border border-white/30 shadow-lg w-full max-w-md mx-auto">
+          <div className="flex flex-col items-center gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-8">
+            <motion.div className="text-2xl font-light text-gray-800 tracking-wide mb-2 sm:mb-0" whileHover={{ scale: 1.05 }}>
               LumeOS
             </motion.div>
             <Button
               variant="ghost"
-              className="bg-white/30 hover:bg-white/40 text-gray-700 rounded-full px-6 py-2 text-sm font-medium transition-all duration-300"
+              className="bg-white/30 hover:bg-white/40 text-gray-700 rounded-full px-6 py-2 text-sm font-medium transition-all duration-300 w-full sm:w-auto"
               onClick={handleOpenWaitlist}
             >
               Join Waitlist
