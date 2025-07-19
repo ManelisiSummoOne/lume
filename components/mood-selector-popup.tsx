@@ -46,14 +46,15 @@ export function MoodSelectorPopup({ isOpen, onClose, onMoodSelect }: MoodSelecto
     <AnimatePresence>
       {isOpen && (
         <Dialog open={isOpen} onOpenChange={onClose}>
-          <DialogContent className="sm:max-w-[500px] p-6 bg-white/90 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30">
+          <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto p-6 bg-white/90 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30">
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               transition={{ duration: 0.3 }}
+              className="flex flex-col"
             >
-              <DialogHeader className="text-center mb-6">
+              <DialogHeader className="text-center mb-6 flex-shrink-0">
                 <DialogTitle className="text-2xl font-light text-gray-800 mb-2">
                   How are you feeling right now?
                 </DialogTitle>
@@ -62,58 +63,61 @@ export function MoodSelectorPopup({ isOpen, onClose, onMoodSelect }: MoodSelecto
                 </DialogDescription>
               </DialogHeader>
 
-              {/* Mood Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-                {moodOptions.map((mood) => (
-                  <motion.button
-                    key={mood.id}
-                    onClick={() => handleMoodSelect(mood.id)}
-                    className={`p-4 rounded-2xl border-2 transition-all duration-300 ${
-                      selectedMood === mood.id
-                        ? "border-purple-400 bg-purple-50/50 scale-105"
-                        : "border-white/40 bg-white/30 hover:bg-white/50"
-                    }`}
-                    whileHover={{ scale: selectedMood === mood.id ? 1.05 : 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <div
-                      className={`w-12 h-12 mx-auto mb-2 rounded-full bg-gradient-to-br ${mood.color} flex items-center justify-center text-white`}
+              {/* Scrollable Content Area */}
+              <div className="flex-1 min-h-0">
+                {/* Mood Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+                  {moodOptions.map((mood) => (
+                    <motion.button
+                      key={mood.id}
+                      onClick={() => handleMoodSelect(mood.id)}
+                      className={`p-4 rounded-2xl border-2 transition-all duration-300 ${
+                        selectedMood === mood.id
+                          ? "border-purple-400 bg-purple-50/50 scale-105"
+                          : "border-white/40 bg-white/30 hover:bg-white/50"
+                      }`}
+                      whileHover={{ scale: selectedMood === mood.id ? 1.05 : 1.02 }}
+                      whileTap={{ scale: 0.98 }}
                     >
-                      {mood.icon}
+                      <div
+                        className={`w-12 h-12 mx-auto mb-2 rounded-full bg-gradient-to-br ${mood.color} flex items-center justify-center text-white`}
+                      >
+                        {mood.icon}
+                      </div>
+                      <p className="text-sm font-medium text-gray-700">{mood.label}</p>
+                    </motion.button>
+                  ))}
+                </div>
+
+                {/* Intensity Slider */}
+                {selectedMood && (
+                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      How intense is this feeling? ({intensity}/10)
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="range"
+                        min="1"
+                        max="10"
+                        value={intensity}
+                        onChange={(e) => setIntensity(Number(e.target.value))}
+                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                        style={{
+                          background: `linear-gradient(to right, #a855f7 0%, #a855f7 ${intensity * 10}%, #e5e7eb ${intensity * 10}%, #e5e7eb 100%)`,
+                        }}
+                      />
+                      <div className="flex justify-between text-xs text-gray-500 mt-1">
+                        <span>Mild</span>
+                        <span>Intense</span>
+                      </div>
                     </div>
-                    <p className="text-sm font-medium text-gray-700">{mood.label}</p>
-                  </motion.button>
-                ))}
+                  </motion.div>
+                )}
               </div>
 
-              {/* Intensity Slider */}
-              {selectedMood && (
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
-                    How intense is this feeling? ({intensity}/10)
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="range"
-                      min="1"
-                      max="10"
-                      value={intensity}
-                      onChange={(e) => setIntensity(Number(e.target.value))}
-                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
-                      style={{
-                        background: `linear-gradient(to right, #a855f7 0%, #a855f7 ${intensity * 10}%, #e5e7eb ${intensity * 10}%, #e5e7eb 100%)`,
-                      }}
-                    />
-                    <div className="flex justify-between text-xs text-gray-500 mt-1">
-                      <span>Mild</span>
-                      <span>Intense</span>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-
-              {/* Action Buttons */}
-              <div className="flex gap-3">
+              {/* Action Buttons - Fixed at bottom */}
+              <div className="flex gap-3 flex-shrink-0">
                 <Button
                   onClick={onClose}
                   variant="outline"
