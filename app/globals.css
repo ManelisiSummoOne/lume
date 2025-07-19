@@ -92,3 +92,24 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* Mobile-specific improvements for better touch scrolling */
+@media (max-width: 768px) {
+  /* Improve touch scrolling on iOS */
+  .overflow-y-auto {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+  
+  /* Prevent zoom on input focus on mobile */
+  input, textarea, select {
+    font-size: 16px;
+  }
+  
+  /* Better modal positioning on mobile */
+  [data-radix-dialog-content] {
+    max-height: 90vh !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+}

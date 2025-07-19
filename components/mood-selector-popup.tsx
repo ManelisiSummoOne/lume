@@ -46,29 +46,31 @@ export function MoodSelectorPopup({ isOpen, onClose, onMoodSelect }: MoodSelecto
     <AnimatePresence>
       {isOpen && (
         <Dialog open={isOpen} onOpenChange={onClose}>
-          <DialogContent className="sm:max-w-[500px] p-6 bg-white/90 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30">
+          <DialogContent className="sm:max-w-[500px] max-h-[90vh] max-w-[95vw] overflow-y-auto p-4 sm:p-6 bg-white/90 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 mx-2 sm:mx-4">
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               transition={{ duration: 0.3 }}
+              className="max-h-full overflow-y-auto"
+              style={{ WebkitOverflowScrolling: 'touch' }}
             >
-              <DialogHeader className="text-center mb-6">
-                <DialogTitle className="text-2xl font-light text-gray-800 mb-2">
+              <DialogHeader className="text-center mb-4 sm:mb-6">
+                <DialogTitle className="text-xl sm:text-2xl font-light text-gray-800 mb-2">
                   How are you feeling right now?
                 </DialogTitle>
-                <DialogDescription className="text-gray-600">
+                <DialogDescription className="text-sm sm:text-base text-gray-600">
                   Help Sera understand your current emotional state
                 </DialogDescription>
               </DialogHeader>
 
               {/* Mood Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6 max-h-80 sm:max-h-96 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
                 {moodOptions.map((mood) => (
                   <motion.button
                     key={mood.id}
                     onClick={() => handleMoodSelect(mood.id)}
-                    className={`p-4 rounded-2xl border-2 transition-all duration-300 ${
+                    className={`p-3 sm:p-4 rounded-2xl border-2 transition-all duration-300 min-h-[120px] sm:min-h-[140px] ${
                       selectedMood === mood.id
                         ? "border-purple-400 bg-purple-50/50 scale-105"
                         : "border-white/40 bg-white/30 hover:bg-white/50"
@@ -77,11 +79,13 @@ export function MoodSelectorPopup({ isOpen, onClose, onMoodSelect }: MoodSelecto
                     whileTap={{ scale: 0.98 }}
                   >
                     <div
-                      className={`w-12 h-12 mx-auto mb-2 rounded-full bg-gradient-to-br ${mood.color} flex items-center justify-center text-white`}
+                      className={`w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 rounded-full bg-gradient-to-br ${mood.color} flex items-center justify-center text-white`}
                     >
-                      {mood.icon}
+                      <div className="w-6 h-6 sm:w-8 sm:h-8">
+                        {mood.icon}
+                      </div>
                     </div>
-                    <p className="text-sm font-medium text-gray-700">{mood.label}</p>
+                    <p className="text-xs sm:text-sm font-medium text-gray-700">{mood.label}</p>
                   </motion.button>
                 ))}
               </div>
@@ -113,18 +117,18 @@ export function MoodSelectorPopup({ isOpen, onClose, onMoodSelect }: MoodSelecto
               )}
 
               {/* Action Buttons */}
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <Button
                   onClick={onClose}
                   variant="outline"
-                  className="flex-1 bg-white/50 hover:bg-white/70 text-gray-700 rounded-2xl py-3 border-white/60"
+                  className="flex-1 bg-white/50 hover:bg-white/70 text-gray-700 rounded-2xl py-3 sm:py-3 h-12 sm:h-auto border-white/60 text-sm sm:text-base"
                 >
                   Skip for now
                 </Button>
                 <Button
                   onClick={handleSubmit}
                   disabled={!selectedMood}
-                  className="flex-1 bg-gradient-to-br from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-2xl py-3 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 bg-gradient-to-br from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-2xl py-3 sm:py-3 h-12 sm:h-auto shadow-lg disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
                 >
                   Continue
                 </Button>

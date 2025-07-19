@@ -621,6 +621,14 @@ export default function LumeOSInterface() {
           timestamp: new Date(),
         }
         setMessages((prev) => [...prev, moodMessage])
+        
+        // Start voice listening if voice mode is selected
+        if (inputMode === "voice" && voiceMode !== "push-to-talk") {
+          // Small delay to let the UI settle after closing the popup
+          setTimeout(() => {
+            handleStartRecording()
+          }, 500)
+        }
       }
     } catch (error) {
       console.error("Error saving mood:", error)
