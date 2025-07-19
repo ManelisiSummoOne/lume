@@ -91,6 +91,8 @@ export default function LumeOSInterface() {
   const [voiceMode, setVoiceMode] = useState<"push-to-talk" | "voice-activation" | "continuous">("voice-activation")
   const [silenceTimer, setSilenceTimer] = useState<NodeJS.Timeout | null>(null)
   const [recordingDuration, setRecordingDuration] = useState(0)
+  const [isPlayingIntroduction, setIsPlayingIntroduction] = useState(false)
+  const [hasPlayedIntroduction, setHasPlayedIntroduction] = useState(false)
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<BlobPart[]>([])
@@ -99,6 +101,7 @@ export default function LumeOSInterface() {
   const audioContextRef = useRef<AudioContext | null>(null)
   const analyserRef = useRef<AnalyserNode | null>(null)
   const silenceDetectionRef = useRef<boolean>(false)
+  const messagesContainerRef = useRef<HTMLDivElement | null>(null)
 
   // Define grounding exercise steps content
   const groundingStepsContent = [
@@ -246,6 +249,13 @@ export default function LumeOSInterface() {
       }
     }
   }, [isRecording])
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight
+    }
+  }, [messages])
 
   // Breathing animation cycle
   useEffect(() => {
@@ -627,9 +637,45 @@ export default function LumeOSInterface() {
     }
   }
 
-  const handleVoiceSelectorClose = () => {
+  const handleVoiceSelectorClose = async () => {
     setShowVoiceSelector(false)
-    setShowMoodSelector(true) // Show mood selector after voice selector
+    
+    // If voice communication was selected and we haven't played the introduction yet, play it
+    if (inputMode === "voice" && !hasPlayedIntroduction) {
+      setIsPlayingIntroduction(true)
+      setHasPlayedIntroduction(true)
+      
+      try {
+        // Play Sera's introduction message
+        const introText = "Hi, I'm Sera. How are you feeling today?"
+        const ttsResponse = await fetch("/api/tts", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ text: introText }),
+        })
+
+        if (ttsResponse.ok && ttsResponse.body) {
+          await playAudioStream(ttsResponse.body)
+        }
+        
+        setIsPlayingIntroduction(false)
+        
+        // Show mood selector after introduction is complete with a small delay
+        setTimeout(() => {
+          setShowMoodSelector(true)
+        }, 500)
+      } catch (error) {
+        console.error("Error playing introduction:", error)
+        setIsPlayingIntroduction(false)
+        // Still show mood selector if audio fails
+        setShowMoodSelector(true)
+      }
+    } else {
+      // If text mode or introduction already played, show mood selector immediately
+      setShowMoodSelector(true)
+    }
   }
 
   const formatDuration = (seconds: number) => {
@@ -821,14 +867,19 @@ export default function LumeOSInterface() {
               <motion.div
                 className="relative z-10 w-32 h-32 mx-auto bg-gradient-to-br from-purple-200 via-pink-200 to-blue-200 rounded-full flex items-center justify-center shadow-2xl"
                 animate={{
-                  boxShadow: [
+                  boxShadow: isPlayingIntroduction ? [
+                    "0 0 40px rgba(59, 130, 246, 0.5), 0 0 80px rgba(147, 51, 234, 0.4)",
+                    "0 0 60px rgba(59, 130, 246, 0.7), 0 0 100px rgba(147, 51, 234, 0.6)",
+                    "0 0 40px rgba(59, 130, 246, 0.5), 0 0 80px rgba(147, 51, 234, 0.4)",
+                  ] : [
                     "0 0 30px rgba(147, 51, 234, 0.3), 0 0 60px rgba(236, 72, 153, 0.2)",
                     "0 0 50px rgba(147, 51, 234, 0.5), 0 0 80px rgba(236, 72, 153, 0.3)",
                     "0 0 30px rgba(147, 51, 234, 0.3), 0 0 60px rgba(236, 72, 153, 0.2)",
                   ],
+                  scale: isPlayingIntroduction ? [1, 1.05, 1] : [1, 1, 1],
                 }}
                 transition={{
-                  duration: 4,
+                  duration: isPlayingIntroduction ? 2 : 4,
                   repeat: Number.POSITIVE_INFINITY,
                   ease: "easeInOut",
                 }}
@@ -968,7 +1019,7 @@ export default function LumeOSInterface() {
           </motion.div>
 
           {/* Chat Interface */}
-          <div className="w-full max-w-md mb-8 max-h-96 overflow-y-auto">
+          <div ref={messagesContainerRef} className="w-full max-w-md mb-8 max-h-96 overflow-y-auto smooth-scroll">
             <AnimatePresence>
               {messages.map((message, index) => (
                 <motion.div
@@ -1605,8 +1656,8 @@ export default function LumeOSInterface() {
       >
         <div className="bg-white/20 backdrop-blur-md rounded-full px-4 py-2 border border-white/30">
           <p className="text-xs text-gray-600 flex items-center">
-            <div className={`w-2 h-2 ${isRecording ? "bg-green-400" : "bg-red-400"} rounded-full mr-2 animate-pulse`} />
-            Sera is {isRecording ? "listening" : "idle"} •{" "}
+            <div className={`w-2 h-2 ${isRecording ? "bg-green-400" : isPlayingIntroduction ? "bg-blue-400" : "bg-red-400"} rounded-full mr-2 animate-pulse`} />
+            Sera is {isRecording ? "listening" : isPlayingIntroduction ? "speaking" : "idle"} •{" "}
             {responseMode === "voice" ? "Voice responses" : "Text responses"}
           </p>
         </div>
@@ -1637,6 +1688,7 @@ export default function LumeOSInterface() {
                   <Button
                     onClick={() => {
                       setInputMode("voice")
+                      setResponseMode("voice") // Enable voice responses when voice communication is selected
                       handleVoiceSelectorClose()
                     }}
                     className="w-full bg-gradient-to-br from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-2xl py-4 shadow-lg transition-all duration-300"

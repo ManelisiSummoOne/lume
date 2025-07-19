@@ -92,3 +92,8 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* Smooth scrolling for messages container */
+.smooth-scroll {
+  scroll-behavior: smooth;
+}
