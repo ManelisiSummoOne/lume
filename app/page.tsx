@@ -621,6 +621,14 @@ export default function LumeOSInterface() {
           timestamp: new Date(),
         }
         setMessages((prev) => [...prev, moodMessage])
+        
+        // Start voice listening if voice mode is selected
+        if (inputMode === "voice" && voiceMode === "voice-activation") {
+          // Small delay to let the UI settle after mood selection
+          setTimeout(() => {
+            handleStartRecording()
+          }, 1000)
+        }
       }
     } catch (error) {
       console.error("Error saving mood:", error)
@@ -629,7 +637,10 @@ export default function LumeOSInterface() {
 
   const handleVoiceSelectorClose = () => {
     setShowVoiceSelector(false)
-    setShowMoodSelector(true) // Show mood selector after voice selector
+    // Add a small delay before showing mood selector for better UX
+    setTimeout(() => {
+      setShowMoodSelector(true)
+    }, 300) // Show mood selector after voice selector with slight delay
   }
 
   const formatDuration = (seconds: number) => {
