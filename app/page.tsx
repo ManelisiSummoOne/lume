@@ -69,7 +69,7 @@ export default function LumeOSInterface() {
   const [isRecording, setIsRecording] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
   const [inputMode, setInputMode] = useState<"voice" | "text">("voice")
-  const [responseMode, setResponseMode] = useState<"text" | "voice">("text")
+  const [responseMode, setResponseMode] = useState<"text" | "voice">("voice")
   const [textInput, setTextInput] = useState("")
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -91,6 +91,7 @@ export default function LumeOSInterface() {
   const [voiceMode, setVoiceMode] = useState<"push-to-talk" | "voice-activation" | "continuous">("voice-activation")
   const [silenceTimer, setSilenceTimer] = useState<NodeJS.Timeout | null>(null)
   const [recordingDuration, setRecordingDuration] = useState(0)
+  const [hasPlayedInitialGreeting, setHasPlayedInitialGreeting] = useState(false)
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<BlobPart[]>([])
@@ -226,6 +227,42 @@ export default function LumeOSInterface() {
     const timer = setInterval(() => setCurrentTime(new Date()), 60000)
     return () => clearInterval(timer)
   }, [])
+
+  // Reset greeting flag when switching to text mode
+  useEffect(() => {
+    if (responseMode === "text") {
+      setHasPlayedInitialGreeting(false)
+    }
+  }, [responseMode])
+
+  // Play initial Sera greeting when voice mode is selected
+  useEffect(() => {
+    const playInitialGreeting = async () => {
+      if (responseMode === "voice" && messages.length > 0 && !messages[0].isUser && !hasPlayedInitialGreeting) {
+        try {
+          const greetingText = messages[0].text
+          const ttsResponse = await fetch("/api/tts", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ text: greetingText }),
+          })
+
+          if (ttsResponse.ok && ttsResponse.body) {
+            await playAudioStream(ttsResponse.body)
+            setHasPlayedInitialGreeting(true)
+          }
+        } catch (error) {
+          console.error("Error playing initial greeting:", error)
+        }
+      }
+    }
+
+    // Add a small delay to ensure everything is loaded properly
+    const timer = setTimeout(playInitialGreeting, 300)
+    return () => clearTimeout(timer)
+  }, [responseMode, messages, hasPlayedInitialGreeting]) // Trigger when responseMode changes or on mount
 
   // Recording duration timer
   useEffect(() => {
