@@ -6,7 +6,6 @@ import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   Mic,
-  MicOff,
   Send,
   Type,
   Volume2,
@@ -25,6 +24,7 @@ import {
   Ear,
   SnailIcon as Nose,
   Utensils,
+  Square,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -35,6 +35,8 @@ import { WaitlistDialog } from "../components/waitlist-dialog"
 import { MoodCheckCircle } from "../components/mood-check-circle"
 import { playAudioStream } from "../utils/audio" // Import audio utility
 import { VoiceOrb } from "../components/voice-orb" // Import VoiceOrb
+import { MoodSelectorPopup } from "../components/mood-selector-popup"
+import { saveMoodEntry } from "../actions/mood"
 
 // Mood icon component
 const MoodIcon = ({ mood, size = "w-5 h-5" }: { mood: string; size?: string }) => {
@@ -83,10 +85,20 @@ export default function LumeOSInterface() {
   const [showWaitlistDialog, setShowWaitlistDialog] = useState(false)
   const [showGrounding, setShowGrounding] = useState(false)
   const [groundingStep, setGroundingStep] = useState(0) // New state for grounding steps
+  const [showVoiceSelector, setShowVoiceSelector] = useState(true) // Add this new state
+  const [showMoodSelector, setShowMoodSelector] = useState(false)
+  const [userMood, setUserMood] = useState<{ mood: string; intensity: number } | null>(null)
+  const [voiceMode, setVoiceMode] = useState<"push-to-talk" | "voice-activation" | "continuous">("voice-activation")
+  const [silenceTimer, setSilenceTimer] = useState<NodeJS.Timeout | null>(null)
+  const [recordingDuration, setRecordingDuration] = useState(0)
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<BlobPart[]>([])
   const groundingTimerRef = useRef<NodeJS.Timeout | null>(null) // Ref for grounding auto-advance
+  const recordingTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const audioContextRef = useRef<AudioContext | null>(null)
+  const analyserRef = useRef<AnalyserNode | null>(null)
+  const silenceDetectionRef = useRef<boolean>(false)
 
   // Define grounding exercise steps content
   const groundingStepsContent = [
@@ -203,7 +215,7 @@ export default function LumeOSInterface() {
       moodDistribution,
       totalMessages: messages.length,
       conversationLength: Math.floor((Date.now() - messages[0].timestamp.getTime()) / 60000),
-      dominantMood: totalMoodEntries > 0 ? dominantMood : "calm",
+      dominantMood: userMood ? userMood.mood : totalMoodEntries > 0 ? dominantMood : "calm",
     }
   }
 
@@ -214,6 +226,26 @@ export default function LumeOSInterface() {
     const timer = setInterval(() => setCurrentTime(new Date()), 60000)
     return () => clearInterval(timer)
   }, [])
+
+  // Recording duration timer
+  useEffect(() => {
+    if (isRecording) {
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingDuration((prev) => prev + 1)
+      }, 1000)
+    } else {
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current)
+      }
+      setRecordingDuration(0)
+    }
+
+    return () => {
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current)
+      }
+    }
+  }, [isRecording])
 
   // Breathing animation cycle
   useEffect(() => {
@@ -254,6 +286,55 @@ export default function LumeOSInterface() {
     } else {
       return "Hello"
     }
+  }
+
+  // Voice activity detection
+  const detectVoiceActivity = (stream: MediaStream) => {
+    audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
+    const source = audioContextRef.current.createMediaStreamSource(stream)
+    analyserRef.current = audioContextRef.current.createAnalyser()
+    analyserRef.current.fftSize = 256
+    source.connect(analyserRef.current)
+
+    const bufferLength = analyserRef.current.frequencyBinCount
+    const dataArray = new Uint8Array(bufferLength)
+
+    const checkAudioLevel = () => {
+      if (!analyserRef.current || !isRecording) return
+
+      analyserRef.current.getByteFrequencyData(dataArray)
+      const average = dataArray.reduce((a, b) => a + b) / bufferLength
+
+      // Detect silence (adjust threshold as needed)
+      const silenceThreshold = 10
+      const isSilent = average < silenceThreshold
+
+      if (voiceMode === "voice-activation") {
+        if (isSilent && !silenceDetectionRef.current) {
+          // Start silence timer
+          silenceDetectionRef.current = true
+          const timer = setTimeout(() => {
+            if (isRecording && silenceDetectionRef.current) {
+              handleStopRecording()
+            }
+          }, 2000) // Stop after 2 seconds of silence
+          setSilenceTimer(timer)
+        } else if (!isSilent && silenceDetectionRef.current) {
+          // Cancel silence timer if voice detected again
+          silenceDetectionRef.current = false
+          if (silenceTimer) {
+            clearTimeout(silenceTimer)
+            setSilenceTimer(null)
+          }
+        }
+      }
+
+      if (isRecording) {
+        requestAnimationFrame(checkAudioLevel)
+      }
+    }
+
+    checkAudioLevel()
   }
 
   const processUserInput = async (input: string) => {
@@ -351,81 +432,105 @@ export default function LumeOSInterface() {
     }
   }
 
-  const handleRecordToggle = async () => {
-    if (isRecording) {
-      // Immediately set isRecording to false for UI responsiveness
-      setIsRecording(false)
-      mediaRecorderRef.current?.stop()
-      // Stop all tracks in the media stream to release the microphone
-      if (mediaRecorderRef.current && mediaRecorderRef.current.stream) {
-        mediaRecorderRef.current.stream.getTracks().forEach((track) => track.stop())
+  const handleStartRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      mediaRecorderRef.current = new MediaRecorder(stream)
+      audioChunksRef.current = []
+
+      mediaRecorderRef.current.ondataavailable = (event) => {
+        audioChunksRef.current.push(event.data)
       }
-      setIsProcessing(true) // Still processing the audio after stopping
-    } else {
-      // Start recording
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-        mediaRecorderRef.current = new MediaRecorder(stream)
-        audioChunksRef.current = []
 
-        mediaRecorderRef.current.ondataavailable = (event) => {
-          audioChunksRef.current.push(event.data)
-        }
+      mediaRecorderRef.current.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/wav" })
+        const formData = new FormData()
+        formData.append("audio", audioBlob, "recording.wav")
 
-        mediaRecorderRef.current.onstop = async () => {
-          // No need to setIsRecording(false) here anymore, it's done immediately on stop button press
-          const audioBlob = new Blob(audioChunksRef.current, { type: "audio/wav" })
-          const formData = new FormData()
-          formData.append("audio", audioBlob, "recording.wav")
+        try {
+          setIsProcessing(true)
+          const response = await fetch("/api/stt", {
+            method: "POST",
+            body: formData,
+          })
 
-          try {
-            const response = await fetch("/api/stt", {
-              method: "POST",
-              body: formData,
-            })
-
-            if (!response.ok) {
-              throw new Error(`STT API error: ${response.statusText}`)
-            }
-
-            const data = await response.json()
-            if (data.text) {
-              processUserInput(data.text)
-            } else {
-              throw new Error("No text transcribed.")
-            }
-          } catch (error) {
-            console.error("Error during STT:", error)
-            setIsProcessing(false) // Ensure processing state is reset on STT error
-            setMessages((prev) => [
-              ...prev,
-              {
-                id: (Date.now() + 1).toString(),
-                text: "I couldn't understand that. Could you please repeat?",
-                isUser: false,
-                timestamp: new Date(),
-              },
-            ])
+          if (!response.ok) {
+            throw new Error(`STT API error: ${response.statusText}`)
           }
-        }
 
-        mediaRecorderRef.current.onerror = (event) => {
-          // Ensure state is reset on recorder error
-          console.error("MediaRecorder error:", event.error)
-          setIsRecording(false)
+          const data = await response.json()
+          if (data.text) {
+            processUserInput(data.text)
+          } else {
+            throw new Error("No text transcribed.")
+          }
+        } catch (error) {
+          console.error("Error during STT:", error)
           setIsProcessing(false)
-          alert("Microphone recording error. Please try again.")
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: (Date.now() + 1).toString(),
+              text: "I couldn't understand that. Could you please repeat?",
+              isUser: false,
+              timestamp: new Date(),
+            },
+          ])
         }
+      }
 
-        mediaRecorderRef.current.start()
-        setIsRecording(true)
-      } catch (error) {
-        // Ensure state is reset if getUserMedia fails
-        console.error("Error accessing microphone:", error)
+      mediaRecorderRef.current.onerror = (event) => {
+        console.error("MediaRecorder error:", event.error)
         setIsRecording(false)
         setIsProcessing(false)
-        alert("Please allow microphone access to use voice input.")
+        alert("Microphone recording error. Please try again.")
       }
+
+      mediaRecorderRef.current.start()
+      setIsRecording(true)
+      silenceDetectionRef.current = false
+
+      // Start voice activity detection for voice-activation mode
+      if (voiceMode === "voice-activation") {
+        detectVoiceActivity(stream)
+      }
+    } catch (error) {
+      console.error("Error accessing microphone:", error)
+      setIsRecording(false)
+      setIsProcessing(false)
+      alert("Please allow microphone access to use voice input.")
+    }
+  }
+
+  const handleStopRecording = () => {
+    setIsRecording(false)
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.stop()
+      // Stop all tracks in the media stream to release the microphone
+      if (mediaRecorderRef.current.stream) {
+        mediaRecorderRef.current.stream.getTracks().forEach((track) => track.stop())
+      }
+    }
+
+    // Clean up audio context
+    if (audioContextRef.current) {
+      audioContextRef.current.close()
+      audioContextRef.current = null
+    }
+
+    // Clear silence timer
+    if (silenceTimer) {
+      clearTimeout(silenceTimer)
+      setSilenceTimer(null)
+    }
+    silenceDetectionRef.current = false
+  }
+
+  const handleRecordToggle = async () => {
+    if (isRecording) {
+      handleStopRecording()
+    } else {
+      await handleStartRecording()
     }
   }
 
@@ -488,27 +593,6 @@ export default function LumeOSInterface() {
     }
   }, [showGrounding, groundingStep]) // Depend on showGrounding and groundingStep
 
-  // Play greeting on mount if voice response is enabled
-  useEffect(() => {
-    if (responseMode !== "voice") return;
-    let didCancel = false;
-    const playGreeting = async () => {
-      try {
-        const ttsResponse = await fetch("/api/tts", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text: "Hi, I'm Sera. How are you feeling today?" }),
-        });
-        if (!ttsResponse.ok || !ttsResponse.body) return;
-        if (!didCancel) await playAudioStream(ttsResponse.body);
-      } catch (e) {
-        // Optionally handle error
-      }
-    };
-    playGreeting();
-    return () => { didCancel = true; };
-  }, [responseMode]);
-
   const handleOpenWaitlist = () => {
     setShowWaitlistDialog(true)
   }
@@ -519,6 +603,52 @@ export default function LumeOSInterface() {
 
   const handleSuggestedResponse = (response: string) => {
     processUserInput(response)
+  }
+
+  const handleMoodSelect = async (mood: string, intensity: number) => {
+    setUserMood({ mood, intensity })
+
+    // Save to database
+    try {
+      const result = await saveMoodEntry(mood, intensity)
+      if (result.success) {
+        console.log("Mood saved successfully:", result.data)
+        // Add a message from Sera acknowledging the mood
+        const moodMessage: Message = {
+          id: Date.now().toString(),
+          text: `Thank you for sharing that you're feeling ${mood}. I'll keep this in mind as we talk. How can I support you today?`,
+          isUser: false,
+          timestamp: new Date(),
+        }
+        setMessages((prev) => [...prev, moodMessage])
+      }
+    } catch (error) {
+      console.error("Error saving mood:", error)
+    }
+  }
+
+  const handleVoiceSelectorClose = () => {
+    setShowVoiceSelector(false)
+    setShowMoodSelector(true) // Show mood selector after voice selector
+  }
+
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins}:${secs.toString().padStart(2, "0")}`
+  }
+
+  const getVoiceModeDescription = () => {
+    switch (voiceMode) {
+      case "push-to-talk":
+        return "Hold to record, release to send"
+      case "voice-activation":
+        return "Tap to start, stops automatically after silence"
+      case "continuous":
+        return "Tap to start/stop recording manually"
+      default:
+        return "Speak to Sera"
+    }
   }
 
   return (
@@ -596,21 +726,21 @@ export default function LumeOSInterface() {
           }}
         />
       </div>
-      {/* Floating Navigation */}
+      {/* Floating Navigation - Mobile Optimized */}
       <motion.nav
-        className="fixed top-6 left-1/2 transform -translate-x-1/2 z-50 w-full px-2"
+        className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-sm px-4"
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.8, ease: "easeOut" }}
       >
-        <div className="bg-white/20 backdrop-blur-md rounded-full px-2 py-3 border border-white/30 shadow-lg w-full max-w-md mx-auto">
-          <div className="flex flex-col items-center gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-8">
-            <motion.div className="text-2xl font-light text-gray-800 tracking-wide mb-2 sm:mb-0" whileHover={{ scale: 1.05 }}>
+        <div className="bg-white/20 backdrop-blur-md rounded-full px-6 py-3 border border-white/30 shadow-lg">
+          <div className="flex items-center justify-between gap-4">
+            <motion.div className="text-xl font-light text-gray-800 tracking-wide" whileHover={{ scale: 1.05 }}>
               LumeOS
             </motion.div>
             <Button
               variant="ghost"
-              className="bg-white/30 hover:bg-white/40 text-gray-700 rounded-full px-6 py-2 text-sm font-medium transition-all duration-300 w-full sm:w-auto"
+              className="bg-white/30 hover:bg-white/40 text-gray-700 rounded-full px-4 py-2 text-sm font-medium transition-all duration-300 whitespace-nowrap"
               onClick={handleOpenWaitlist}
             >
               Join Waitlist
@@ -649,7 +779,7 @@ export default function LumeOSInterface() {
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 1, delay: 0.6 }}
             >
-              Your voice-first guide to emotional clarity
+              Let's explore your emotional journey together
             </motion.p>
 
             {/* Sera's Enhanced Avatar with Ambient Elements */}
@@ -739,7 +869,7 @@ export default function LumeOSInterface() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.6 }}
           >
-            <MoodCheckCircle dominantMood={conversationInsights.dominantMood} onCheckIn={handleRecordToggle} />
+            <MoodCheckCircle dominantMood={conversationInsights.dominantMood} />
             <p className="mt-4 text-lg font-medium text-gray-700">
               You seem{" "}
               <span className="font-semibold capitalize text-purple-700">
@@ -750,6 +880,58 @@ export default function LumeOSInterface() {
               today.
             </p>
           </motion.div>
+
+          {/* Voice Mode Selector */}
+          {inputMode === "voice" && (
+            <motion.div
+              className="mb-6 flex flex-col items-center"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.3 }}
+            >
+              <Card className="bg-white/30 backdrop-blur-sm border-white/30 p-4 rounded-2xl">
+                <h4 className="text-sm font-medium text-gray-700 mb-3 text-center">Voice Input Mode</h4>
+                <div className="flex gap-2">
+                  <Button
+                    variant={voiceMode === "voice-activation" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setVoiceMode("voice-activation")}
+                    className={`text-xs ${
+                      voiceMode === "voice-activation"
+                        ? "bg-purple-500 text-white"
+                        : "bg-white/50 text-gray-700 hover:bg-white/70"
+                    }`}
+                  >
+                    Smart Stop
+                  </Button>
+                  <Button
+                    variant={voiceMode === "push-to-talk" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setVoiceMode("push-to-talk")}
+                    className={`text-xs ${
+                      voiceMode === "push-to-talk"
+                        ? "bg-purple-500 text-white"
+                        : "bg-white/50 text-gray-700 hover:bg-white/70"
+                    }`}
+                  >
+                    Hold to Talk
+                  </Button>
+                  <Button
+                    variant={voiceMode === "continuous" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setVoiceMode("continuous")}
+                    className={`text-xs ${
+                      voiceMode === "continuous"
+                        ? "bg-purple-500 text-white"
+                        : "bg-white/50 text-gray-700 hover:bg-white/70"
+                    }`}
+                  >
+                    Manual
+                  </Button>
+                </div>
+              </Card>
+            </motion.div>
+          )}
 
           {/* Input Mode & Response Mode Controls */}
           <motion.div
@@ -992,7 +1174,11 @@ export default function LumeOSInterface() {
                         ? "bg-gradient-to-br from-red-400 to-pink-500"
                         : "bg-gradient-to-br from-purple-400 to-pink-400"
                     }`}
-                    onClick={handleRecordToggle}
+                    onClick={voiceMode === "push-to-talk" ? undefined : handleRecordToggle}
+                    onMouseDown={voiceMode === "push-to-talk" ? handleStartRecording : undefined}
+                    onMouseUp={voiceMode === "push-to-talk" ? handleStopRecording : undefined}
+                    onTouchStart={voiceMode === "push-to-talk" ? handleStartRecording : undefined}
+                    onTouchEnd={voiceMode === "push-to-talk" ? handleStopRecording : undefined}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     animate={{
@@ -1017,21 +1203,42 @@ export default function LumeOSInterface() {
                     }}
                   >
                     {isRecording ? (
-                      <Mic className="w-8 h-8 text-white mb-1" />
+                      voiceMode === "continuous" ? (
+                        <Square className="w-8 h-8 text-white mb-1" />
+                      ) : (
+                        <Mic className="w-8 h-8 text-white mb-1" />
+                      )
                     ) : (
-                      <MicOff className="w-8 h-8 text-white mb-1" />
+                      <Mic className="w-8 h-8 text-white mb-1" />
                     )}
                   </motion.button>
                 </div>
 
+                {/* Recording Duration */}
+                {isRecording && (
+                  <motion.div
+                    className="mt-4 px-3 py-1 bg-red-500/20 rounded-full border border-red-300/30"
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                  >
+                    <p className="text-sm font-medium text-red-700">{formatDuration(recordingDuration)}</p>
+                  </motion.div>
+                )}
+
                 {/* Button Label */}
                 <motion.p
-                  className="mt-6 text-sm font-medium text-gray-600"
+                  className="mt-6 text-sm font-medium text-gray-600 text-center max-w-xs"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 1 }}
                 >
-                  {isRecording ? "Listening..." : "Speak to Sera"}
+                  {isRecording
+                    ? voiceMode === "voice-activation"
+                      ? "Listening... (stops automatically)"
+                      : voiceMode === "push-to-talk"
+                        ? "Recording... (release to send)"
+                        : "Recording... (tap to stop)"
+                    : getVoiceModeDescription()}
                 </motion.p>
 
                 {/* Enhanced Voice Waveform Visualization */}
@@ -1404,6 +1611,62 @@ export default function LumeOSInterface() {
           </p>
         </div>
       </motion.div>
+      {/* Voice/Text Selector Popup - First Time Experience */}
+      <AnimatePresence>
+        {showVoiceSelector && (
+          <motion.div
+            className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <Card className="bg-white/90 backdrop-blur-md p-8 rounded-3xl shadow-2xl text-center max-w-sm mx-4">
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.3 }}
+              >
+                <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-purple-200 to-pink-200 rounded-full flex items-center justify-center">
+                  <VoiceOrb size="w-8 h-8" animate={true} />
+                </div>
+
+                <h3 className="text-xl font-semibold text-gray-800 mb-2">Welcome to LumeOS</h3>
+                <p className="text-gray-600 mb-8">How would you like to communicate with Sera?</p>
+
+                <div className="space-y-4">
+                  <Button
+                    onClick={() => {
+                      setInputMode("voice")
+                      handleVoiceSelectorClose()
+                    }}
+                    className="w-full bg-gradient-to-br from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-2xl py-4 shadow-lg transition-all duration-300"
+                  >
+                    <Mic className="w-5 h-5 mr-3" />
+                    Voice Communication
+                  </Button>
+
+                  <Button
+                    onClick={() => {
+                      setInputMode("text")
+                      handleVoiceSelectorClose()
+                    }}
+                    variant="outline"
+                    className="w-full bg-white/50 hover:bg-white/70 text-gray-700 rounded-2xl py-4 border-white/60 shadow-md transition-all duration-300"
+                  >
+                    <Type className="w-5 h-5 mr-3" />
+                    Text Communication
+                  </Button>
+                </div>
+              </motion.div>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <MoodSelectorPopup
+        isOpen={showMoodSelector}
+        onClose={() => setShowMoodSelector(false)}
+        onMoodSelect={handleMoodSelect}
+      />
     </div>
   )
 }

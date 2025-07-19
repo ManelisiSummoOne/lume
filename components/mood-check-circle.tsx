@@ -1,13 +1,11 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { Mic, Leaf, Wind, Cloud, Sun, Smile } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { Leaf, Wind, Cloud, Sun, Smile } from "lucide-react"
 import { Card } from "@/components/ui/card"
 
 interface MoodCheckCircleProps {
   dominantMood: string
-  onCheckIn: () => void
 }
 
 const MoodIcon = ({ mood, size = "w-10 h-10" }: { mood: string; size?: string }) => {
@@ -21,7 +19,7 @@ const MoodIcon = ({ mood, size = "w-10 h-10" }: { mood: string; size?: string })
   return iconMap[mood as keyof typeof iconMap] || iconMap.default
 }
 
-export function MoodCheckCircle({ dominantMood, onCheckIn }: MoodCheckCircleProps) {
+export function MoodCheckCircle({ dominantMood }: MoodCheckCircleProps) {
   const getMoodColor = (mood: string) => {
     switch (mood) {
       case "calm":
@@ -62,17 +60,6 @@ export function MoodCheckCircle({ dominantMood, onCheckIn }: MoodCheckCircleProp
         </p>
         <p className="text-sm text-gray-600">Current State</p>
       </motion.div>
-
-      {/* Voice activation button */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="absolute bottom-4 right-4 w-12 h-12 rounded-full bg-white/70 hover:bg-white/90 border border-white/50 shadow-md text-gray-700"
-        onClick={onCheckIn}
-        aria-label="Check in with voice"
-      >
-        <Mic className="w-6 h-6" />
-      </Button>
     </Card>
   )
 }
