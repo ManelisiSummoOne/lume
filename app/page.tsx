@@ -627,9 +627,33 @@ export default function LumeOSInterface() {
     }
   }
 
-  const handleVoiceSelectorClose = () => {
+  const handleVoiceSelectorClose = async () => {
     setShowVoiceSelector(false)
-    setShowMoodSelector(true) // Show mood selector after voice selector
+    
+    // If voice response is enabled, make Sera speak her initial greeting
+    if (responseMode === "voice") {
+      const initialGreeting = "Hi, I'm Sera. How are you feeling today?"
+      try {
+        const ttsResponse = await fetch("/api/tts", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ text: initialGreeting }),
+        })
+
+        if (ttsResponse.ok && ttsResponse.body) {
+          await playAudioStream(ttsResponse.body)
+        }
+      } catch (error) {
+        console.error("Error playing initial greeting:", error)
+      }
+    }
+    
+    // Add a delay before showing mood selector to allow Sera to finish speaking
+    setTimeout(() => {
+      setShowMoodSelector(true)
+    }, responseMode === "voice" ? 3000 : 1000) // 3 seconds if voice, 1 second if text
   }
 
   const formatDuration = (seconds: number) => {
@@ -1637,6 +1661,7 @@ export default function LumeOSInterface() {
                   <Button
                     onClick={() => {
                       setInputMode("voice")
+                      setResponseMode("voice") // Set response mode to voice as well
                       handleVoiceSelectorClose()
                     }}
                     className="w-full bg-gradient-to-br from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-2xl py-4 shadow-lg transition-all duration-300"
@@ -1648,6 +1673,7 @@ export default function LumeOSInterface() {
                   <Button
                     onClick={() => {
                       setInputMode("text")
+                      setResponseMode("text") // Set response mode to text as well
                       handleVoiceSelectorClose()
                     }}
                     variant="outline"
