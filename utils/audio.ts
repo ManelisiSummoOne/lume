@@ -1,28 +1,55 @@
 // utils/audio.ts
 export async function playAudioStream(audioStream: ReadableStream<Uint8Array>) {
-  const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
-  const source = audioContext.createBufferSource()
-  const gainNode = audioContext.createGain()
+  try {
+    console.log("Starting audio stream playback...")
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+    
+    // Resume audio context if suspended (required for autoplay policies)
+    if (audioContext.state === 'suspended') {
+      await audioContext.resume()
+    }
+    
+    const source = audioContext.createBufferSource()
+    const gainNode = audioContext.createGain()
 
-  gainNode.connect(audioContext.destination)
-  source.connect(gainNode)
+    gainNode.connect(audioContext.destination)
+    source.connect(gainNode)
 
-  const reader = audioStream.getReader()
-  const chunks: Uint8Array[] = []
+    const reader = audioStream.getReader()
+    const chunks: Uint8Array[] = []
 
-  while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
-    chunks.push(value)
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      chunks.push(value)
+    }
+
+    console.log(`Received ${chunks.length} audio chunks`)
+    const audioBlob = new Blob(chunks, { type: "audio/mpeg" })
+    const arrayBuffer = await audioBlob.arrayBuffer()
+    console.log(`Audio buffer size: ${arrayBuffer.byteLength} bytes`)
+
+    return new Promise<void>((resolve, reject) => {
+      audioContext.decodeAudioData(arrayBuffer, 
+        (buffer) => {
+          console.log("Audio decoded successfully, playing...")
+          source.buffer = buffer
+          source.onended = () => {
+            console.log("Audio playback completed")
+            resolve()
+          }
+          source.start(0)
+        },
+        (error) => {
+          console.error("Audio decode error:", error)
+          reject(error)
+        }
+      )
+    })
+  } catch (error) {
+    console.error("Audio stream playback error:", error)
+    throw error
   }
-
-  const audioBlob = new Blob(chunks, { type: "audio/mpeg" })
-  const arrayBuffer = await audioBlob.arrayBuffer()
-
-  audioContext.decodeAudioData(arrayBuffer, (buffer) => {
-    source.buffer = buffer
-    source.start(0)
-  })
 }
 
 // Fallback speech synthesis using browser's built-in API
@@ -35,6 +62,7 @@ export function speakText(text: string): Promise<void> {
 
     // Function to set up and speak
     const setupAndSpeak = () => {
+      console.log("Setting up speech synthesis for:", text.substring(0, 50) + "...")
       const utterance = new SpeechSynthesisUtterance(text)
       
       // Configure voice settings for a more pleasant experience
@@ -44,6 +72,7 @@ export function speakText(text: string): Promise<void> {
 
       // Try to use a female voice if available
       const voices = speechSynthesis.getVoices()
+      console.log("Available voices:", voices.length)
       const femaleVoice = voices.find(voice => 
         voice.name.toLowerCase().includes('female') || 
         voice.name.toLowerCase().includes('zira') ||
@@ -54,12 +83,23 @@ export function speakText(text: string): Promise<void> {
       )
       
       if (femaleVoice) {
+        console.log("Using female voice:", femaleVoice.name)
         utterance.voice = femaleVoice
+      } else {
+        console.log("No female voice found, using default")
       }
 
-      utterance.onend = () => resolve()
-      utterance.onerror = (event) => reject(new Error(`Speech synthesis error: ${event.error}`))
+      utterance.onstart = () => console.log("Speech synthesis started")
+      utterance.onend = () => {
+        console.log("Speech synthesis completed")
+        resolve()
+      }
+      utterance.onerror = (event) => {
+        console.error("Speech synthesis error:", event)
+        reject(new Error(`Speech synthesis error: ${event.error}`))
+      }
 
+      console.log("Starting speech synthesis...")
       speechSynthesis.speak(utterance)
     }
 
