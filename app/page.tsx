@@ -33,7 +33,7 @@ import { Switch } from "@/components/ui/switch"
 import { LumeOSFooter } from "../components/lumeos-footer"
 import { WaitlistDialog } from "../components/waitlist-dialog"
 import { MoodCheckCircle } from "../components/mood-check-circle"
-import { playAudioStream } from "../utils/audio" // Import audio utility
+import { playAudioStream, speakTextWithFallback } from "../utils/audio" // Import audio utilities
 import { VoiceOrb } from "../components/voice-orb" // Import VoiceOrb
 import { MoodSelectorPopup } from "../components/mood-selector-popup"
 import { saveMoodEntry } from "../actions/mood"
@@ -404,18 +404,11 @@ export default function LumeOSInterface() {
 
       // If voice response is enabled, generate and play speech
       if (responseMode === "voice" && seraResponseText) {
-        const ttsResponse = await fetch("/api/tts", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ text: seraResponseText }),
-        })
-
-        if (!ttsResponse.ok || !ttsResponse.body) {
-          throw new Error(`TTS API error: ${ttsResponse.statusText}`)
+        try {
+          await speakTextWithFallback(seraResponseText)
+        } catch (error) {
+          console.error("Error speaking response:", error)
         }
-        await playAudioStream(ttsResponse.body)
       }
     } catch (error) {
       console.error("Error processing user input:", error)
@@ -634,17 +627,7 @@ export default function LumeOSInterface() {
     if (responseMode === "voice") {
       const initialGreeting = "Hi, I'm Sera. How are you feeling today?"
       try {
-        const ttsResponse = await fetch("/api/tts", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ text: initialGreeting }),
-        })
-
-        if (ttsResponse.ok && ttsResponse.body) {
-          await playAudioStream(ttsResponse.body)
-        }
+        await speakTextWithFallback(initialGreeting)
       } catch (error) {
         console.error("Error playing initial greeting:", error)
       }
