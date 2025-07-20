@@ -76,33 +76,9 @@ export function speakText(text: string): Promise<void> {
   })
 }
 
-// Combined function that tries ElevenLabs TTS first, then falls back to browser speech
+// Browser-only speech synthesis (simplified wrapper)
 export async function speakTextWithFallback(text: string): Promise<void> {
-  try {
-    // Try ElevenLabs TTS first
-    const ttsResponse = await fetch("/api/tts", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ text }),
-    })
-
-    if (ttsResponse.ok && ttsResponse.body) {
-      await playAudioStream(ttsResponse.body)
-      return
-    }
-  } catch (error) {
-    console.warn("ElevenLabs TTS failed, falling back to browser speech synthesis:", error)
-  }
-
-  // Fallback to browser speech synthesis
-  try {
-    await speakText(text)
-  } catch (error) {
-    console.error("Both TTS methods failed:", error)
-    throw error
-  }
+  return speakText(text)
 }
 
 export async function recordAudio(): Promise<Blob> {

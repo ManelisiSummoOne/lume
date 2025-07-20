@@ -405,9 +405,29 @@ export default function LumeOSInterface() {
       // If voice response is enabled, generate and play speech
       if (responseMode === "voice" && seraResponseText) {
         try {
-          await speakTextWithFallback(seraResponseText)
+          // Try ElevenLabs TTS first (works in production with API keys)
+          const ttsResponse = await fetch("/api/tts", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ text: seraResponseText }),
+          })
+
+          if (ttsResponse.ok && ttsResponse.body) {
+            await playAudioStream(ttsResponse.body)
+          } else {
+            // Fallback to browser speech synthesis
+            console.log("TTS API failed, using browser speech synthesis")
+            await speakTextWithFallback(seraResponseText)
+          }
         } catch (error) {
-          console.error("Error speaking response:", error)
+          console.error("Error with TTS, trying browser speech synthesis:", error)
+          try {
+            await speakTextWithFallback(seraResponseText)
+          } catch (fallbackError) {
+            console.error("All speech methods failed:", fallbackError)
+          }
         }
       }
     } catch (error) {
@@ -627,9 +647,29 @@ export default function LumeOSInterface() {
     if (responseMode === "voice") {
       const initialGreeting = "Hi, I'm Sera. How are you feeling today?"
       try {
-        await speakTextWithFallback(initialGreeting)
+        // Try ElevenLabs TTS first (works in production with API keys)
+        const ttsResponse = await fetch("/api/tts", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ text: initialGreeting }),
+        })
+
+        if (ttsResponse.ok && ttsResponse.body) {
+          await playAudioStream(ttsResponse.body)
+        } else {
+          // Fallback to browser speech synthesis
+          console.log("TTS API failed, using browser speech synthesis")
+          await speakTextWithFallback(initialGreeting)
+        }
       } catch (error) {
-        console.error("Error playing initial greeting:", error)
+        console.error("Error with TTS, trying browser speech synthesis:", error)
+        try {
+          await speakTextWithFallback(initialGreeting)
+        } catch (fallbackError) {
+          console.error("All speech methods failed:", fallbackError)
+        }
       }
     }
     
