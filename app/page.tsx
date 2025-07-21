@@ -633,8 +633,12 @@ export default function LumeOSInterface() {
     // If voice was selected, play Sera's greeting and delay mood selector
     if (selectedMode === "voice") {
       try {
+        console.log("Voice selected, playing Sera's greeting...")
+        
         // Play Sera's greeting message
         const greetingText = "Hi, I'm Sera. How are you feeling today?"
+        console.log("Fetching TTS for:", greetingText)
+        
         const ttsResponse = await fetch("/api/tts", {
           method: "POST",
           headers: {
@@ -643,14 +647,22 @@ export default function LumeOSInterface() {
           body: JSON.stringify({ text: greetingText }),
         })
 
+        console.log("TTS response status:", ttsResponse.status, ttsResponse.statusText)
+
         if (ttsResponse.ok && ttsResponse.body) {
+          console.log("Playing audio stream...")
           await playAudioStream(ttsResponse.body)
+          console.log("Audio playback completed, adding delay...")
           
           // Add a small delay after greeting completes before showing mood selector
           setTimeout(() => {
+            console.log("Showing mood selector after delay")
             setShowMoodSelector(true)
           }, 1000) // 1 second delay after greeting
         } else {
+          console.error("TTS failed with status:", ttsResponse.status)
+          const errorText = await ttsResponse.text()
+          console.error("TTS error response:", errorText)
           // If TTS fails, still show mood selector
           setShowMoodSelector(true)
         }

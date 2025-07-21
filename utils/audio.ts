@@ -2,13 +2,9 @@
 export async function playAudioStream(audioStream: ReadableStream<Uint8Array>): Promise<void> {
   return new Promise(async (resolve, reject) => {
     try {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
-      const source = audioContext.createBufferSource()
-      const gainNode = audioContext.createGain()
-
-      gainNode.connect(audioContext.destination)
-      source.connect(gainNode)
-
+      console.log('Starting audio playback...')
+      
+      // Read the stream first
       const reader = audioStream.getReader()
       const chunks: Uint8Array[] = []
 
@@ -18,20 +14,39 @@ export async function playAudioStream(audioStream: ReadableStream<Uint8Array>): 
         chunks.push(value)
       }
 
+      console.log('Audio chunks received:', chunks.length)
+      
+      // Create audio blob and URL
       const audioBlob = new Blob(chunks, { type: "audio/mpeg" })
-      const arrayBuffer = await audioBlob.arrayBuffer()
-
-      audioContext.decodeAudioData(arrayBuffer, (buffer) => {
-        source.buffer = buffer
-        
-        // Resolve when audio finishes playing
-        source.onended = () => resolve()
-        
-        source.start(0)
-      }, (error) => {
+      const audioUrl = URL.createObjectURL(audioBlob)
+      
+      console.log('Audio blob created, size:', audioBlob.size)
+      
+      // Use HTML5 Audio API instead of Web Audio API for better compatibility
+      const audio = new Audio(audioUrl)
+      
+      audio.onended = () => {
+        console.log('Audio playback ended')
+        URL.revokeObjectURL(audioUrl)
+        resolve()
+      }
+      
+      audio.onerror = (error) => {
+        console.error('Audio playback error:', error)
+        URL.revokeObjectURL(audioUrl)
         reject(error)
-      })
+      }
+      
+      audio.oncanplaythrough = () => {
+        console.log('Audio can play through, starting playback')
+        audio.play().catch(reject)
+      }
+      
+      // Load the audio
+      audio.load()
+      
     } catch (error) {
+      console.error('Error in playAudioStream:', error)
       reject(error)
     }
   })

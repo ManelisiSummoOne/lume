@@ -4,7 +4,7 @@ import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Leaf, Wind, Cloud, Sun, Smile, Heart, Zap, Coffee } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+// Removed Dialog imports as we're using custom modal
 
 interface MoodSelectorPopupProps {
   isOpen: boolean
@@ -45,22 +45,30 @@ export function MoodSelectorPopup({ isOpen, onClose, onMoodSelect }: MoodSelecto
   return (
     <AnimatePresence>
       {isOpen && (
-        <Dialog open={isOpen} onOpenChange={onClose}>
-          <DialogContent className="sm:max-w-[500px] max-h-[90vh] p-4 sm:p-6 bg-white/90 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 overflow-y-auto mx-4">
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <DialogHeader className="text-center mb-4 sm:mb-6">
-                <DialogTitle className="text-xl sm:text-2xl font-light text-gray-800 mb-2">
+        <motion.div
+          className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+        >
+          <motion.div
+            className="bg-white/90 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 w-full max-w-[500px] max-h-[90vh] overflow-hidden"
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-4 sm:p-6 max-h-[90vh] overflow-y-auto custom-scrollbar">
+              <div className="text-center mb-4 sm:mb-6">
+                <h2 className="text-xl sm:text-2xl font-light text-gray-800 mb-2">
                   How are you feeling right now?
-                </DialogTitle>
-                <DialogDescription className="text-sm sm:text-base text-gray-600">
+                </h2>
+                <p className="text-sm sm:text-base text-gray-600">
                   Help Sera understand your current emotional state
-                </DialogDescription>
-              </DialogHeader>
+                </p>
+              </div>
 
               {/* Mood Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6 max-h-[45vh] sm:max-h-[40vh] overflow-y-auto scrollbar-thin">
@@ -131,9 +139,9 @@ export function MoodSelectorPopup({ isOpen, onClose, onMoodSelect }: MoodSelecto
                   Continue
                 </Button>
               </div>
-            </motion.div>
-          </DialogContent>
-        </Dialog>
+            </div>
+          </motion.div>
+        </motion.div>
       )}
     </AnimatePresence>
   )
