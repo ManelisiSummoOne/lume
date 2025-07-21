@@ -220,7 +220,7 @@ export default function MindfulnessPage() {
                 ease: "easeInOut",
               }}
             >
-              <VoiceOrb size="w-12 h-12" animate={true} />
+              <VoiceOrb size="w-12 h-12" animate={true} intensity="medium" />
             </motion.div>
 
             {/* Floating Particles */}

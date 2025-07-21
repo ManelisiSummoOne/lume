@@ -878,7 +878,13 @@ export default function LumeOSInterface() {
                   ease: "easeInOut",
                 }}
               >
-                <VoiceOrb size="w-12 h-12" animate={true} />
+                <VoiceOrb 
+                  size="w-12 h-12" 
+                  animate={true} 
+                  intensity="high"
+                  isListening={isRecording}
+                  isSpeaking={isProcessing}
+                />
               </motion.div>
 
               {/* Floating Particles */}
@@ -1110,7 +1116,7 @@ export default function LumeOSInterface() {
                     ease: "easeOut",
                   }}
                 >
-                  <VoiceOrb size="w-4 h-4" animate={true} />
+                  <VoiceOrb size="w-4 h-4" animate={true} intensity="low" isSpeaking={true} />
                 </motion.div>
 
                 <div className="flex flex-col">
@@ -1564,7 +1570,7 @@ export default function LumeOSInterface() {
                   ease: "easeInOut",
                 }}
               >
-                <VoiceOrb size="w-12 h-12" animate={true} /> {/* Changed icon to VoiceOrb */}
+                <VoiceOrb size="w-12 h-12" animate={true} intensity="medium" /> {/* Enhanced VoiceOrb for breathing */}
               </motion.div>
 
               <motion.p
@@ -1672,7 +1678,7 @@ export default function LumeOSInterface() {
                 transition={{ duration: 0.3 }}
               >
                 <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-purple-200 to-pink-200 rounded-full flex items-center justify-center">
-                  <VoiceOrb size="w-8 h-8" animate={true} />
+                  <VoiceOrb size="w-10 h-10" animate={true} intensity="medium" />
                 </div>
 
                 <h3 className="text-xl font-semibold text-gray-800 mb-2">Welcome to LumeOS</h3>
