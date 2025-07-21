@@ -627,9 +627,42 @@ export default function LumeOSInterface() {
     }
   }
 
-  const handleVoiceSelectorClose = () => {
+  const handleVoiceSelectorClose = async (selectedMode?: "voice" | "text") => {
     setShowVoiceSelector(false)
-    setShowMoodSelector(true) // Show mood selector after voice selector
+    
+    // If voice was selected, play Sera's greeting and delay mood selector
+    if (selectedMode === "voice") {
+      try {
+        // Play Sera's greeting message
+        const greetingText = "Hi, I'm Sera. How are you feeling today?"
+        const ttsResponse = await fetch("/api/tts", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ text: greetingText }),
+        })
+
+        if (ttsResponse.ok && ttsResponse.body) {
+          await playAudioStream(ttsResponse.body)
+          
+          // Add a small delay after greeting completes before showing mood selector
+          setTimeout(() => {
+            setShowMoodSelector(true)
+          }, 1000) // 1 second delay after greeting
+        } else {
+          // If TTS fails, still show mood selector
+          setShowMoodSelector(true)
+        }
+      } catch (error) {
+        console.error("Error playing greeting:", error)
+        // If greeting fails, still show mood selector
+        setShowMoodSelector(true)
+      }
+    } else {
+      // For text mode, show mood selector immediately
+      setShowMoodSelector(true)
+    }
   }
 
   const formatDuration = (seconds: number) => {
@@ -1637,7 +1670,8 @@ export default function LumeOSInterface() {
                   <Button
                     onClick={() => {
                       setInputMode("voice")
-                      handleVoiceSelectorClose()
+                      setResponseMode("voice") // Set response mode to voice when voice is selected
+                      handleVoiceSelectorClose("voice")
                     }}
                     className="w-full bg-gradient-to-br from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-2xl py-4 shadow-lg transition-all duration-300"
                   >
@@ -1648,7 +1682,7 @@ export default function LumeOSInterface() {
                   <Button
                     onClick={() => {
                       setInputMode("text")
-                      handleVoiceSelectorClose()
+                      handleVoiceSelectorClose("text")
                     }}
                     variant="outline"
                     className="w-full bg-white/50 hover:bg-white/70 text-gray-700 rounded-2xl py-4 border-white/60 shadow-md transition-all duration-300"

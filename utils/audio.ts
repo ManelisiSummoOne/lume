@@ -1,27 +1,39 @@
 // utils/audio.ts
-export async function playAudioStream(audioStream: ReadableStream<Uint8Array>) {
-  const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
-  const source = audioContext.createBufferSource()
-  const gainNode = audioContext.createGain()
+export async function playAudioStream(audioStream: ReadableStream<Uint8Array>): Promise<void> {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+      const source = audioContext.createBufferSource()
+      const gainNode = audioContext.createGain()
 
-  gainNode.connect(audioContext.destination)
-  source.connect(gainNode)
+      gainNode.connect(audioContext.destination)
+      source.connect(gainNode)
 
-  const reader = audioStream.getReader()
-  const chunks: Uint8Array[] = []
+      const reader = audioStream.getReader()
+      const chunks: Uint8Array[] = []
 
-  while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
-    chunks.push(value)
-  }
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        chunks.push(value)
+      }
 
-  const audioBlob = new Blob(chunks, { type: "audio/mpeg" })
-  const arrayBuffer = await audioBlob.arrayBuffer()
+      const audioBlob = new Blob(chunks, { type: "audio/mpeg" })
+      const arrayBuffer = await audioBlob.arrayBuffer()
 
-  audioContext.decodeAudioData(arrayBuffer, (buffer) => {
-    source.buffer = buffer
-    source.start(0)
+      audioContext.decodeAudioData(arrayBuffer, (buffer) => {
+        source.buffer = buffer
+        
+        // Resolve when audio finishes playing
+        source.onended = () => resolve()
+        
+        source.start(0)
+      }, (error) => {
+        reject(error)
+      })
+    } catch (error) {
+      reject(error)
+    }
   })
 }
 
