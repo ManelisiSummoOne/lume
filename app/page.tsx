@@ -728,19 +728,19 @@ export default function LumeOSInterface() {
       </div>
       {/* Floating Navigation - Mobile Optimized */}
       <motion.nav
-        className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-sm px-4"
+        className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-xs sm:max-w-sm md:max-w-md px-4 flex justify-center"
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.8, ease: "easeOut" }}
       >
-        <div className="bg-white/20 backdrop-blur-md rounded-full px-6 py-3 border border-white/30 shadow-lg">
-          <div className="flex items-center justify-between gap-4">
-            <motion.div className="text-xl font-light text-gray-800 tracking-wide" whileHover={{ scale: 1.05 }}>
+        <div className="bg-white/20 backdrop-blur-md rounded-full px-4 sm:px-6 py-3 border border-white/30 shadow-lg w-full">
+          <div className="flex items-center justify-between gap-2 sm:gap-4">
+            <motion.div className="text-lg sm:text-xl font-light text-gray-800 tracking-wide flex-shrink-0" whileHover={{ scale: 1.05 }}>
               LumeOS
             </motion.div>
             <Button
               variant="ghost"
-              className="bg-white/30 hover:bg-white/40 text-gray-700 rounded-full px-4 py-2 text-sm font-medium transition-all duration-300 whitespace-nowrap"
+              className="bg-white/30 hover:bg-white/40 text-gray-700 rounded-full px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium transition-all duration-300 whitespace-nowrap flex-shrink-0"
               onClick={handleOpenWaitlist}
             >
               Join Waitlist
