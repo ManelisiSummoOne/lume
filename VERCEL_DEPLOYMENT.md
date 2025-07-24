@@ -17,15 +17,15 @@ GOOGLE_CLOUD_PROJECT_ID=your-actual-project-id
 # Required - Region where your model is deployed
 GOOGLE_CLOUD_LOCATION=us-central1
 
-# Required - Your deployed Vertex AI model ID
-SERA_MODEL_ID=your-deployed-model-id
+# Required - Your deployed Vertex AI ENDPOINT ID (not model ID)
+SERA_MODEL_ID=psychocounsel-llama3-8b-1753218681694-one-click-deploy
 
 # Optional - Custom name for your model
-SERA_MODEL_NAME=My Sera Model
+SERA_MODEL_NAME=PsychoCounsel LLaMA3 8B
 
 # Optional - For UI display (client-side)
-NEXT_PUBLIC_SERA_MODEL_ID=your-deployed-model-id
-NEXT_PUBLIC_SERA_MODEL_NAME=My Sera Model
+NEXT_PUBLIC_SERA_MODEL_ID=psychocounsel-llama3-8b-1753218681694-one-click-deploy
+NEXT_PUBLIC_SERA_MODEL_NAME=PsychoCounsel LLaMA3 8B
 ```
 
 ### Step 2: Authentication (Automatic for Vercel)
