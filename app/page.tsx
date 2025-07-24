@@ -36,6 +36,7 @@ import { MoodCheckCircle } from "../components/mood-check-circle"
 import { playAudioStream } from "../utils/audio" // Import audio utility
 import { VoiceOrb } from "../components/voice-orb" // Import VoiceOrb
 import { MoodSelectorPopup } from "../components/mood-selector-popup"
+import { SeraModelIndicator } from "../components/sera-model-indicator"
 import { saveMoodEntry } from "../actions/mood"
 
 // Mood icon component
@@ -348,27 +349,30 @@ export default function LumeOSInterface() {
     setMessages((prev) => [...prev, userMessage])
 
     try {
-      // Prepare messages for AI SDK (Gemini)
+      // Prepare messages for Vertex AI (Sera)
       const aiMessages = messages.map((msg) => ({
         role: msg.isUser ? "user" : "assistant",
         content: msg.text,
       }))
       aiMessages.push({ role: "user", content: input }) // Add current user input
 
-      const response = await fetch("/api/chat", {
+      const response = await fetch("/api/sera-chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ messages: aiMessages }),
+        body: JSON.stringify({ 
+          messages: aiMessages,
+          userMood: userMood // Pass user mood to help with model selection
+        }),
       })
 
       if (!response.ok) {
-        throw new Error(`AI chat API error: ${response.statusText}`)
+        throw new Error(`Sera chat API error: ${response.statusText}`)
       }
 
       const reader = response.body?.getReader()
-      if (!reader) throw new Error("Failed to get reader from AI chat response.")
+      if (!reader) throw new Error("Failed to get reader from Sera chat response.")
 
       let seraResponseText = ""
       let done = false
@@ -1494,6 +1498,9 @@ export default function LumeOSInterface() {
                 )}
               </div>
             </Card>
+
+            {/* Sera AI Model Indicator */}
+            <SeraModelIndicator className="bg-white/30 backdrop-blur-sm border-white/30" />
           </div>
         </motion.div>
       </div>
