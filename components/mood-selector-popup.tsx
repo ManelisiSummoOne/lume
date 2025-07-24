@@ -46,7 +46,7 @@ export function MoodSelectorPopup({ isOpen, onClose, onMoodSelect }: MoodSelecto
     <AnimatePresence>
       {isOpen && (
         <Dialog open={isOpen} onOpenChange={onClose}>
-          <DialogContent className="sm:max-w-[500px] p-6 bg-white/90 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30">
+          <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto p-6 bg-white/90 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30">
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}

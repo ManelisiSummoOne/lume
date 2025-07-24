@@ -497,6 +497,9 @@ export default function LumeOSInterface() {
       // Start voice activity detection for voice-activation mode
       if (voiceMode === "voice-activation") {
         detectVoiceActivity(stream)
+      } else if (voiceMode === "continuous") {
+        // For continuous mode, don't auto-stop - user controls manually
+        console.log("Continuous recording mode - user controls start/stop")
       }
     } catch (error) {
       console.error("Error accessing microphone:", error)
@@ -596,6 +599,47 @@ export default function LumeOSInterface() {
       }
     }
   }, [showGrounding, groundingStep]) // Depend on showGrounding and groundingStep
+
+  // Sera greeting on load
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (messages.length === 1) { // Only the initial greeting exists
+        const greeting = `${getDynamicGreeting()}! I'm so glad you're here. How are you feeling today?`
+        
+        // Add Sera's personalized greeting
+        setMessages(prev => [
+          ...prev,
+          {
+            id: (Date.now() + 1).toString(),
+            text: greeting,
+            isUser: false,
+            timestamp: new Date(),
+          }
+        ])
+
+        // If voice response is enabled, speak the greeting
+        if (responseMode === "voice") {
+          fetch("/api/tts", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ text: greeting }),
+          })
+          .then(response => {
+            if (response.ok && response.body) {
+              return playAudioStream(response.body)
+            }
+          })
+          .catch(error => {
+            console.error("Error playing greeting:", error)
+          })
+        }
+      }
+    }, 2000) // Wait 2 seconds after load
+
+    return () => clearTimeout(timer)
+  }, []) // Only run once on mount
 
   const handleOpenWaitlist = () => {
     setShowWaitlistDialog(true)
