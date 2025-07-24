@@ -356,7 +356,7 @@ export default function LumeOSInterface() {
       }))
       aiMessages.push({ role: "user", content: input }) // Add current user input
 
-      const response = await fetch("/api/sera-chat", {
+      const response = await fetch("/api/sera-chat-dedicated", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

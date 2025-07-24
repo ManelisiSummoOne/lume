@@ -15,16 +15,15 @@ In your Vercel dashboard:
 GOOGLE_CLOUD_PROJECT_ID=your-actual-project-id
 
 # Required - Region where your model is deployed
-GOOGLE_CLOUD_LOCATION=us-central1
+GOOGLE_CLOUD_LOCATION=europe-west4
 
-# Required - Your deployed Vertex AI ENDPOINT ID (not model ID)
-SERA_MODEL_ID=psychocounsel-llama3-8b-1753218681694-one-click-deploy
-
-# Optional - Custom name for your model
+# Required - Your dedicated endpoint configuration
+SERA_MODEL_ID=2159768491417141248
 SERA_MODEL_NAME=PsychoCounsel LLaMA3 8B
+SERA_ENDPOINT_URL=https://2159768491417141248.europe-west4-1075430485377.prediction.vertexai.goog
 
 # Optional - For UI display (client-side)
-NEXT_PUBLIC_SERA_MODEL_ID=psychocounsel-llama3-8b-1753218681694-one-click-deploy
+NEXT_PUBLIC_SERA_MODEL_ID=2159768491417141248
 NEXT_PUBLIC_SERA_MODEL_NAME=PsychoCounsel LLaMA3 8B
 ```
 
