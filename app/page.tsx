@@ -36,6 +36,7 @@ import { MoodCheckCircle } from "../components/mood-check-circle"
 import { playAudioStream } from "../utils/audio" // Import audio utility
 import { VoiceOrb } from "../components/voice-orb" // Import VoiceOrb
 import { MoodSelectorPopup } from "../components/mood-selector-popup"
+import { SeraModelIndicator } from "../components/sera-model-indicator"
 import { saveMoodEntry } from "../actions/mood"
 
 // Mood icon component
@@ -348,27 +349,30 @@ export default function LumeOSInterface() {
     setMessages((prev) => [...prev, userMessage])
 
     try {
-      // Prepare messages for AI SDK (Gemini)
+      // Prepare messages for Vertex AI (Sera)
       const aiMessages = messages.map((msg) => ({
         role: msg.isUser ? "user" : "assistant",
         content: msg.text,
       }))
       aiMessages.push({ role: "user", content: input }) // Add current user input
 
-      const response = await fetch("/api/chat", {
+      const response = await fetch("/api/sera-chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ messages: aiMessages }),
+        body: JSON.stringify({ 
+          messages: aiMessages,
+          userMood: userMood // Pass user mood to help with model selection
+        }),
       })
 
       if (!response.ok) {
-        throw new Error(`AI chat API error: ${response.statusText}`)
+        throw new Error(`Sera chat API error: ${response.statusText}`)
       }
 
       const reader = response.body?.getReader()
-      if (!reader) throw new Error("Failed to get reader from AI chat response.")
+      if (!reader) throw new Error("Failed to get reader from Sera chat response.")
 
       let seraResponseText = ""
       let done = false
@@ -493,6 +497,9 @@ export default function LumeOSInterface() {
       // Start voice activity detection for voice-activation mode
       if (voiceMode === "voice-activation") {
         detectVoiceActivity(stream)
+      } else if (voiceMode === "continuous") {
+        // For continuous mode, don't auto-stop - user controls manually
+        console.log("Continuous recording mode - user controls start/stop")
       }
     } catch (error) {
       console.error("Error accessing microphone:", error)
@@ -593,6 +600,59 @@ export default function LumeOSInterface() {
     }
   }, [showGrounding, groundingStep]) // Depend on showGrounding and groundingStep
 
+  // Sera greeting on load
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (messages.length === 1) { // Only the initial greeting exists
+        const greeting = `${getDynamicGreeting()}! I'm so glad you're here. How are you feeling today?`
+        
+        // Add Sera's personalized greeting
+        setMessages(prev => [
+          ...prev,
+          {
+            id: (Date.now() + 1).toString(),
+            text: greeting,
+            isUser: false,
+            timestamp: new Date(),
+          }
+        ])
+
+        // Always speak the greeting on load (auto-enable voice for initial experience)
+        const speakGreeting = async () => {
+          try {
+            const response = await fetch("/api/tts", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ text: greeting }),
+            })
+            
+            if (response.ok && response.body) {
+              await playAudioStream(response.body)
+              console.log("Sera greeting played successfully")
+              
+              // After greeting finishes, show mood selector with a pause
+              setTimeout(() => {
+                setShowMoodSelector(true)
+              }, 1500) // 1.5 second pause after greeting finishes
+            }
+          } catch (error) {
+            console.error("Error playing greeting:", error)
+            // If voice fails, still show mood selector
+            setTimeout(() => {
+              setShowMoodSelector(true)
+            }, 3000)
+          }
+        }
+
+        speakGreeting()
+      }
+    }, 2000) // Wait 2 seconds after load
+
+    return () => clearTimeout(timer)
+  }, []) // Only run once on mount
+
   const handleOpenWaitlist = () => {
     setShowWaitlistDialog(true)
   }
@@ -613,14 +673,49 @@ export default function LumeOSInterface() {
       const result = await saveMoodEntry(mood, intensity)
       if (result.success) {
         console.log("Mood saved successfully:", result.data)
+        
+        // Create personalized response based on mood and intensity
+        let moodResponse = ""
+        if (intensity >= 8) {
+          moodResponse = `I can sense you're feeling quite ${mood} right now. That takes courage to share with me. I'm here to support you through this. `
+        } else if (intensity >= 5) {
+          moodResponse = `Thank you for sharing that you're feeling ${mood}. I appreciate your openness with me. `
+        } else {
+          moodResponse = `I hear that you're feeling ${mood}, and I'm glad you felt comfortable sharing that with me. `
+        }
+        
+        moodResponse += "How would you like me to help you today? We could talk about what's on your mind, try a breathing exercise, or just have a conversation."
+        
         // Add a message from Sera acknowledging the mood
         const moodMessage: Message = {
           id: Date.now().toString(),
-          text: `Thank you for sharing that you're feeling ${mood}. I'll keep this in mind as we talk. How can I support you today?`,
+          text: moodResponse,
           isUser: false,
           timestamp: new Date(),
         }
         setMessages((prev) => [...prev, moodMessage])
+
+        // Always speak the mood response to create conversational flow
+        const speakMoodResponse = async () => {
+          try {
+            const response = await fetch("/api/tts", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ text: moodResponse }),
+            })
+            
+            if (response.ok && response.body) {
+              await playAudioStream(response.body)
+              console.log("Sera mood response played successfully")
+            }
+          } catch (error) {
+            console.error("Error playing mood response:", error)
+          }
+        }
+
+        speakMoodResponse()
       }
     } catch (error) {
       console.error("Error saving mood:", error)
@@ -629,7 +724,7 @@ export default function LumeOSInterface() {
 
   const handleVoiceSelectorClose = () => {
     setShowVoiceSelector(false)
-    setShowMoodSelector(true) // Show mood selector after voice selector
+    // Don't automatically show mood selector - it will appear after Sera's greeting
   }
 
   const formatDuration = (seconds: number) => {
@@ -1494,6 +1589,9 @@ export default function LumeOSInterface() {
                 )}
               </div>
             </Card>
+
+            {/* Sera AI Model Indicator */}
+            <SeraModelIndicator className="bg-white/30 backdrop-blur-sm border-white/30" />
           </div>
         </motion.div>
       </div>
@@ -1637,6 +1735,7 @@ export default function LumeOSInterface() {
                   <Button
                     onClick={() => {
                       setInputMode("voice")
+                      setResponseMode("voice") // Auto-enable voice output when voice input is selected
                       handleVoiceSelectorClose()
                     }}
                     className="w-full bg-gradient-to-br from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-2xl py-4 shadow-lg transition-all duration-300"
@@ -1648,6 +1747,7 @@ export default function LumeOSInterface() {
                   <Button
                     onClick={() => {
                       setInputMode("text")
+                      setResponseMode("text") // Keep text output when text input is selected
                       handleVoiceSelectorClose()
                     }}
                     variant="outline"
