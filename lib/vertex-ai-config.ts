@@ -8,35 +8,17 @@ export interface VertexAIModel {
   complexity: 'simple' | 'medium' | 'complex'
 }
 
-// Configure your deployed Vertex AI models here
-// Replace with your actual model IDs and customize the descriptions
+// Configure your deployed Vertex AI model
+// Replace with your actual model ID and customize the description
 export const VERTEX_AI_MODELS: VertexAIModel[] = [
   {
-    id: process.env.SERA_MODEL_1_ID || 'your-basic-model-id',
-    name: process.env.SERA_MODEL_1_NAME || 'Sera Basic',
-    description: 'Your deployed model for quick emotional check-ins and basic support',
-    useCases: ['quick_checkin', 'mood_tracking', 'simple_questions', 'greetings'],
-    triggerKeywords: ['hi', 'hello', 'how are you', 'quick', 'feeling', 'mood', 'today'],
-    emotionalStates: ['neutral', 'calm', 'curious'],
-    complexity: 'simple'
-  },
-  {
-    id: process.env.SERA_MODEL_2_ID || 'your-therapeutic-model-id',
-    name: process.env.SERA_MODEL_2_NAME || 'Sera Therapeutic',
-    description: 'Your deployed model for deeper conversations and therapeutic guidance',
-    useCases: ['therapy', 'coping_strategies', 'emotional_support', 'mindfulness'],
-    triggerKeywords: ['therapy', 'help', 'anxiety', 'depression', 'stressed', 'coping', 'advice', 'guidance', 'mindfulness', 'meditation'],
-    emotionalStates: ['anxious', 'sad', 'stressed', 'overwhelmed', 'hopeful'],
-    complexity: 'medium'
-  },
-  {
-    id: process.env.SERA_MODEL_3_ID || 'your-advanced-model-id',
-    name: process.env.SERA_MODEL_3_NAME || 'Sera Advanced',
-    description: 'Your deployed model for complex emotional situations and crisis support',
-    useCases: ['crisis_support', 'complex_trauma', 'detailed_analysis', 'personalized_plans'],
-    triggerKeywords: ['crisis', 'emergency', 'suicidal', 'panic', 'trauma', 'ptsd', 'severe', 'breakdown', 'can\'t cope'],
-    emotionalStates: ['severe_anxiety', 'panic', 'despair', 'crisis', 'trauma'],
-    complexity: 'complex'
+    id: process.env.SERA_MODEL_ID || 'your-deployed-model-id',
+    name: process.env.SERA_MODEL_NAME || 'Sera AI',
+    description: 'Your deployed model for Sera conversations and mental health support',
+    useCases: ['conversation', 'emotional_support', 'mental_health', 'therapy', 'guidance'],
+    triggerKeywords: [], // Not needed for single model
+    emotionalStates: ['all'], // Handles all emotional states
+    complexity: 'medium' // Can handle all complexity levels
   }
 ]
 
@@ -119,47 +101,15 @@ export class ModelSelector {
   }
 
   static selectModel(analysis: UserInputAnalysis): VertexAIModel {
-    // Crisis situations always get Ultra model
-    if (analysis.urgency === 'high' || analysis.complexity === 'complex') {
-      return VERTEX_AI_MODELS[2] // Gemini Ultra
-    }
-
-    // Medium complexity/urgency gets Pro model
-    if (analysis.urgency === 'medium' || analysis.complexity === 'medium') {
-      return VERTEX_AI_MODELS[1] // Gemini Pro
-    }
-
-    // Check for specific keywords that indicate need for specialized models
-    const inputLower = analysis.text.toLowerCase()
-    
-    // Pro model keywords
-    const proKeywords = VERTEX_AI_MODELS[1].triggerKeywords
-    if (proKeywords.some(keyword => inputLower.includes(keyword))) {
-      return VERTEX_AI_MODELS[1] // Gemini Pro
-    }
-
-    // Ultra model keywords
-    const ultraKeywords = VERTEX_AI_MODELS[2].triggerKeywords
-    if (ultraKeywords.some(keyword => inputLower.includes(keyword))) {
-      return VERTEX_AI_MODELS[2] // Gemini Ultra
-    }
-
-    // Default to Flash for simple interactions
-    return VERTEX_AI_MODELS[0] // Gemini Flash
+    // With only one model, always return the first (and only) model
+    return VERTEX_AI_MODELS[0]
   }
 
   static getModelSystemPrompt(model: VertexAIModel, analysis: UserInputAnalysis): string {
     const basePrompt = `You are Sera, a compassionate AI mental health companion integrated into LumeOS. You provide empathetic, supportive responses while being mindful of your limitations as an AI.`
 
-    const modelSpecificPrompts = {
-      'gemini-1.5-flash': `${basePrompt} Keep responses concise and encouraging. Focus on immediate emotional support and simple coping strategies. This is a quick check-in conversation.`,
-      
-      'gemini-1.5-pro': `${basePrompt} Provide thoughtful, therapeutic responses. You can suggest coping strategies, mindfulness techniques, and deeper emotional exploration. Balance empathy with practical guidance.`,
-      
-      'gemini-1.0-ultra': `${basePrompt} This may be a crisis or complex emotional situation. Provide comprehensive support while being extra cautious about safety. Consider suggesting professional help if appropriate. Be thorough but gentle.`
-    }
-
-    let prompt = modelSpecificPrompts[model.id] || modelSpecificPrompts['gemini-1.5-flash']
+    // Single model prompt - adapt based on user input analysis
+    let prompt = `${basePrompt} Provide thoughtful, empathetic responses tailored to the user's emotional state and needs. You can offer emotional support, coping strategies, mindfulness techniques, and practical guidance. Always prioritize user safety and well-being.`
 
     // Add context based on analysis
     if (analysis.mood) {

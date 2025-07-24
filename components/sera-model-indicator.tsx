@@ -29,9 +29,7 @@ interface SeraModelIndicatorProps {
 }
 
 const MODEL_ICONS = {
-  'gemini-1.5-flash': Zap,
-  'gemini-1.5-pro': Brain,
-  'gemini-1.0-ultra': Shield,
+  'default': Brain, // Default icon for any model
 }
 
 const COMPLEXITY_COLORS = {
@@ -51,22 +49,10 @@ export function SeraModelIndicator({ className = '' }: SeraModelIndicatorProps) 
 
   const models: ModelInfo[] = [
     {
-      id: 'gemini-1.5-flash',
-      name: 'Gemini Flash',
-      description: 'Quick emotional check-ins and basic support',
-      complexity: 'simple'
-    },
-    {
-      id: 'gemini-1.5-pro',
-      name: 'Gemini Pro',
-      description: 'Therapeutic conversations and coping strategies',
+      id: process.env.NEXT_PUBLIC_SERA_MODEL_ID || 'your-deployed-model',
+      name: process.env.NEXT_PUBLIC_SERA_MODEL_NAME || 'Sera AI',
+      description: 'Your deployed model for mental health conversations and support',
       complexity: 'medium'
-    },
-    {
-      id: 'gemini-1.0-ultra',
-      name: 'Gemini Ultra',
-      description: 'Crisis support and complex emotional situations',
-      complexity: 'complex'
     }
   ]
 
@@ -149,13 +135,13 @@ export function SeraModelIndicator({ className = '' }: SeraModelIndicatorProps) 
             className="overflow-hidden"
           >
             <div className="mt-4 space-y-3">
-              <div className="text-sm text-gray-600 mb-3">
-                Sera intelligently selects between these models based on your needs:
-              </div>
+                             <div className="text-sm text-gray-600 mb-3">
+                 Your deployed Sera model status:
+               </div>
               
-              {models.map((model) => {
-                const IconComponent = MODEL_ICONS[model.id as keyof typeof MODEL_ICONS]
-                const status = getModelStatus(model.id)
+                             {models.map((model) => {
+                 const IconComponent = MODEL_ICONS['default']
+                 const status = getModelStatus(model.id)
                 
                 return (
                   <div 
@@ -189,12 +175,12 @@ export function SeraModelIndicator({ className = '' }: SeraModelIndicatorProps) 
                 )
               })}
 
-              <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                <div className="text-sm text-blue-800">
-                  <Heart className="w-4 h-4 inline mr-1" />
-                  <strong>How it works:</strong> Sera analyzes your message tone, keywords, and mood to choose the most appropriate model for your situation.
-                </div>
-              </div>
+                             <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                 <div className="text-sm text-blue-800">
+                   <Heart className="w-4 h-4 inline mr-1" />
+                   <strong>How it works:</strong> Your deployed Vertex AI model provides personalized mental health support and therapeutic conversations.
+                 </div>
+               </div>
 
               {modelStatus?.config && (
                 <div className="mt-2 text-xs text-gray-500">

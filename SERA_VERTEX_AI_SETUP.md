@@ -1,19 +1,19 @@
 # Sera Vertex AI Integration Setup
 
-This guide explains how to set up Sera with your live Vertex AI models for intelligent, context-aware conversations.
+This guide explains how to set up Sera with your deployed Vertex AI model for mental health conversations.
 
 ## Overview
 
-Sera now uses three Vertex AI models that are intelligently selected based on user input:
+Sera now uses your custom Vertex AI model deployed to Google Cloud for:
 
-- **Gemini Flash** (`gemini-1.5-flash`) - Quick emotional check-ins and basic support
-- **Gemini Pro** (`gemini-1.5-pro`) - Therapeutic conversations and coping strategies  
-- **Gemini Ultra** (`gemini-1.0-ultra`) - Crisis support and complex emotional situations
+- Mental health conversations and emotional support
+- Therapeutic guidance and coping strategies
+- Personalized responses based on user mood and context
 
 ## Prerequisites
 
 1. Google Cloud Project with Vertex AI API enabled
-2. Your three Gemini models deployed and available in Vertex AI
+2. Your custom model deployed and available in Vertex AI
 3. Appropriate authentication set up
 
 ## Environment Configuration
@@ -29,8 +29,16 @@ cp .env.example .env.local
 # Required: Your Google Cloud Project ID
 GOOGLE_CLOUD_PROJECT_ID=your-project-id
 
-# Required: The region where your models are deployed
+# Required: The region where your model is deployed
 GOOGLE_CLOUD_LOCATION=us-central1
+
+# Required: Your deployed model configuration
+SERA_MODEL_ID=your-deployed-model-id
+SERA_MODEL_NAME="Your Model Name"
+
+# Optional: For UI display
+NEXT_PUBLIC_SERA_MODEL_ID=your-deployed-model-id
+NEXT_PUBLIC_SERA_MODEL_NAME="Your Model Name"
 
 # Optional: Service Account Key (see authentication section below)
 # GOOGLE_SERVICE_ACCOUNT_KEY='{"type":"service_account",...}'
@@ -60,54 +68,50 @@ GOOGLE_SERVICE_ACCOUNT_KEY='{"type":"service_account","project_id":"your-project
 gcloud auth application-default login
 ```
 
-## Model Selection Logic
+## How It Works
 
-Sera automatically selects the appropriate model based on:
+Your deployed Vertex AI model handles all types of mental health conversations:
 
-### Urgency Level
-- **High**: Crisis keywords like "emergency", "suicidal", "panic", "can't cope"
-- **Medium**: Stress keywords like "anxiety", "depression", "overwhelmed"  
-- **Low**: General conversation like "hello", "how are you", "feeling"
+- **General Support**: Everyday emotional check-ins and conversations
+- **Therapeutic Guidance**: Coping strategies and mental health advice
+- **Crisis Awareness**: Sensitive to urgent situations and can provide appropriate responses
 
-### Complexity Assessment
-- **Complex**: Trauma, chronic issues, severe mental health situations
-- **Medium**: Therapy requests, coping strategies, guided support
-- **Simple**: Mood check-ins, basic questions, casual conversation
-
-### User Mood Integration
-- Mood intensity ≥8: Escalates urgency level
-- Mood intensity ≥9: Escalates complexity level
-- Crisis moods: Automatically uses Ultra model
+### User Context Integration
+- User mood is passed to the model to provide context
+- Conversation history is maintained for continuity
+- System prompts are customized based on user emotional state
 
 ## Testing the Integration
 
 ### 1. Health Check
 Visit `https://your-domain/api/sera-chat` (GET request) to check model availability.
 
-### 2. Test Different Model Triggers
+### 2. Test Your Model
 
-**Flash Model (Simple):**
+Try different types of conversations:
+
+**Basic Conversations:**
 - "Hi Sera, how are you?"
 - "I'm feeling okay today"
-- "Quick check-in"
+- "Tell me about yourself"
 
-**Pro Model (Medium):**
+**Emotional Support:**
 - "I need help with anxiety"
 - "Can you guide me through some coping strategies?"
 - "I'm feeling stressed about work"
 
-**Ultra Model (Complex):**
+**Crisis Situations:**
 - "I'm having a panic attack"
 - "I can't cope with this anymore"
-- "I need crisis support"
+- "I need help right now"
 
 ## Monitoring
 
 The Sera Model Indicator component (visible in the right panel on desktop) shows:
-- Current model availability status
-- Real-time model health
-- Configuration details
-- How the intelligent selection works
+- Your deployed model availability status
+- Real-time model health check
+- Configuration details (project, region)
+- Model information and description
 
 ## Troubleshooting
 

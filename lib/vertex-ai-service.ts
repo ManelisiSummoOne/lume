@@ -34,38 +34,57 @@ export class VertexAIService {
     const modelIds = VERTEX_AI_MODELS.map(model => model.id)
     
     modelIds.forEach(modelId => {
-      try {
-        const model = this.vertexAI.getGenerativeModel({
-          model: modelId,
-          generationConfig: {
-            maxOutputTokens: 8192,
-            temperature: 0.7,
-            topP: 0.8,
-            topK: 40,
-          },
-          safetySettings: [
-            {
-              category: 'HARM_CATEGORY_HATE_SPEECH',
-              threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+              try {
+          const model = this.vertexAI.getGenerativeModel({
+            model: modelId,
+            generationConfig: {
+              maxOutputTokens: 8192,
+              temperature: 0.7,
+              topP: 0.8,
+              topK: 40,
             },
-            {
-              category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
-              threshold: 'BLOCK_MEDIUM_AND_ABOVE',
-            },
-            {
-              category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
-              threshold: 'BLOCK_MEDIUM_AND_ABOVE',
-            },
-            {
-              category: 'HARM_CATEGORY_HARASSMENT',
-              threshold: 'BLOCK_MEDIUM_AND_ABOVE',
-            },
-          ],
-        })
-        this.models.set(modelId, model)
-      } catch (error) {
-        console.error(`Failed to initialize model ${modelId}:`, error)
-      }
+            // Note: Some custom models may not support all safety settings
+            // Remove or adjust these if your model doesn't support them
+            safetySettings: [
+              {
+                category: 'HARM_CATEGORY_HATE_SPEECH',
+                threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+              },
+              {
+                category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+                threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+              },
+              {
+                category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+                threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+              },
+              {
+                category: 'HARM_CATEGORY_HARASSMENT',
+                threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+              },
+            ],
+          })
+          this.models.set(modelId, model)
+          console.log(`Successfully initialized model: ${modelId}`)
+        } catch (error) {
+          console.error(`Failed to initialize model ${modelId}:`, error)
+          // For custom models, try without safety settings if initialization fails
+          try {
+            const model = this.vertexAI.getGenerativeModel({
+              model: modelId,
+              generationConfig: {
+                maxOutputTokens: 8192,
+                temperature: 0.7,
+                topP: 0.8,
+                topK: 40,
+              },
+            })
+            this.models.set(modelId, model)
+            console.log(`Successfully initialized model ${modelId} (without safety settings)`)
+          } catch (fallbackError) {
+            console.error(`Failed to initialize model ${modelId} even without safety settings:`, fallbackError)
+          }
+        }
     })
   }
 
