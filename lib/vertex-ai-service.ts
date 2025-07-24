@@ -175,19 +175,21 @@ export class VertexAIService {
     return vertexModels.find(model => model.id === modelId)
   }
 
-  // Health check for models
-  async checkModelAvailability(): Promise<{ [key: string]: boolean }> {
-    const availability: { [key: string]: boolean } = {}
+  // Health check for models with detailed error reporting
+  async checkModelAvailability(): Promise<{ [key: string]: { available: boolean, error?: string } }> {
+    const availability: { [key: string]: { available: boolean, error?: string } } = {}
     
     for (const [modelId, model] of this.models.entries()) {
       try {
-        await model.generateContent({
+        const result = await model.generateContent({
           contents: [{ role: 'user', parts: [{ text: 'test' }] }]
         })
-        availability[modelId] = true
+        availability[modelId] = { available: true }
+        console.log(`✅ Model ${modelId} health check passed`)
       } catch (error) {
-        console.error(`Model ${modelId} health check failed:`, error)
-        availability[modelId] = false
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+        console.error(`❌ Model ${modelId} health check failed:`, errorMessage)
+        availability[modelId] = { available: false, error: errorMessage }
       }
     }
     

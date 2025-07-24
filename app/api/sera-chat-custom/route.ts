@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getVertexAIService } from '../../../lib/vertex-ai-service'
-import type { ChatMessage } from '../../../lib/vertex-ai-service'
+import { getCustomVertexAIService } from '../../../lib/vertex-ai-service-custom'
+import type { ChatMessage } from '../../../lib/vertex-ai-service-custom'
 
 // Environment configuration for Vertex AI
 const VERTEX_AI_CONFIG = {
@@ -34,10 +34,10 @@ export async function POST(req: NextRequest) {
     // Get the current user input (last message)
     const currentInput = messages[messages.length - 1]?.content || ''
 
-    // Get or initialize the Vertex AI service
-    const vertexService = getVertexAIService(VERTEX_AI_CONFIG)
+    // Get or initialize the custom Vertex AI service
+    const vertexService = getCustomVertexAIService(VERTEX_AI_CONFIG)
 
-    // Generate response using intelligent model selection
+    // Generate response using the custom service
     const responseStream = await vertexService.generateResponse(
       currentInput,
       chatHistory,
@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error in /api/sera-chat:', error)
+    console.error('Error in /api/sera-chat-custom:', error)
     
     // Return a user-friendly error message
     const errorMessage = error instanceof Error 
@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// Health check endpoint
+// Health check endpoint for custom models
 export async function GET(req: NextRequest) {
   try {
     if (!VERTEX_AI_CONFIG.projectId) {
@@ -98,7 +98,7 @@ export async function GET(req: NextRequest) {
       )
     }
 
-    const vertexService = getVertexAIService(VERTEX_AI_CONFIG)
+    const vertexService = getCustomVertexAIService(VERTEX_AI_CONFIG)
     const modelAvailability = await vertexService.checkModelAvailability()
     
     // Extract simple boolean status for backward compatibility
@@ -108,6 +108,7 @@ export async function GET(req: NextRequest) {
     
     return NextResponse.json({
       status: 'ok',
+      service: 'custom',
       models: simpleStatus,
       modelDetails: modelAvailability, // Detailed info including errors
       config: {
@@ -117,7 +118,7 @@ export async function GET(req: NextRequest) {
       }
     })
   } catch (error) {
-    console.error('Health check error:', error)
+    console.error('Custom service health check error:', error)
     return NextResponse.json(
       { status: 'error', message: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
