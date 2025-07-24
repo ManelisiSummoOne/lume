@@ -8,29 +8,31 @@ export interface VertexAIModel {
   complexity: 'simple' | 'medium' | 'complex'
 }
 
+// Configure your deployed Vertex AI models here
+// Replace with your actual model IDs and customize the descriptions
 export const VERTEX_AI_MODELS: VertexAIModel[] = [
   {
-    id: 'gemini-1.5-flash',
-    name: 'Gemini Flash',
-    description: 'Fast, lightweight model for quick emotional check-ins and basic support',
+    id: process.env.SERA_MODEL_1_ID || 'your-basic-model-id',
+    name: process.env.SERA_MODEL_1_NAME || 'Sera Basic',
+    description: 'Your deployed model for quick emotional check-ins and basic support',
     useCases: ['quick_checkin', 'mood_tracking', 'simple_questions', 'greetings'],
     triggerKeywords: ['hi', 'hello', 'how are you', 'quick', 'feeling', 'mood', 'today'],
     emotionalStates: ['neutral', 'calm', 'curious'],
     complexity: 'simple'
   },
   {
-    id: 'gemini-1.5-pro',
-    name: 'Gemini Pro',
-    description: 'Balanced model for deeper conversations and therapeutic guidance',
+    id: process.env.SERA_MODEL_2_ID || 'your-therapeutic-model-id',
+    name: process.env.SERA_MODEL_2_NAME || 'Sera Therapeutic',
+    description: 'Your deployed model for deeper conversations and therapeutic guidance',
     useCases: ['therapy', 'coping_strategies', 'emotional_support', 'mindfulness'],
     triggerKeywords: ['therapy', 'help', 'anxiety', 'depression', 'stressed', 'coping', 'advice', 'guidance', 'mindfulness', 'meditation'],
     emotionalStates: ['anxious', 'sad', 'stressed', 'overwhelmed', 'hopeful'],
     complexity: 'medium'
   },
   {
-    id: 'gemini-1.0-ultra',
-    name: 'Gemini Ultra',
-    description: 'Advanced model for complex emotional situations and crisis support',
+    id: process.env.SERA_MODEL_3_ID || 'your-advanced-model-id',
+    name: process.env.SERA_MODEL_3_NAME || 'Sera Advanced',
+    description: 'Your deployed model for complex emotional situations and crisis support',
     useCases: ['crisis_support', 'complex_trauma', 'detailed_analysis', 'personalized_plans'],
     triggerKeywords: ['crisis', 'emergency', 'suicidal', 'panic', 'trauma', 'ptsd', 'severe', 'breakdown', 'can\'t cope'],
     emotionalStates: ['severe_anxiety', 'panic', 'despair', 'crisis', 'trauma'],

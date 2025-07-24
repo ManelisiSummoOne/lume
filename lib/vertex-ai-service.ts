@@ -1,5 +1,5 @@
 import { VertexAI, GenerativeModel } from '@google-cloud/vertexai'
-import { VertexAIModel, UserInputAnalysis, ModelSelector } from './vertex-ai-config'
+import { VertexAIModel, UserInputAnalysis, ModelSelector, VERTEX_AI_MODELS } from './vertex-ai-config'
 
 export interface VertexAIConfig {
   projectId: string
@@ -30,7 +30,8 @@ export class VertexAIService {
   }
 
   private initializeModels() {
-    const modelIds = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-1.0-ultra']
+    // Get your deployed model IDs from configuration
+    const modelIds = VERTEX_AI_MODELS.map(model => model.id)
     
     modelIds.forEach(modelId => {
       try {
