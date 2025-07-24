@@ -6,14 +6,18 @@ Based on your curl sample, I've created a specialized integration for your dedic
 
 ## 📋 **Vercel Environment Variables**
 
-Set these **exact values** in your Vercel dashboard:
+Set these **exact values** in your Vercel dashboard (matching Vertex AI sample format):
 
 ```bash
 # Required - Your Google Cloud configuration
 GOOGLE_CLOUD_PROJECT_ID=lume-f4327
+PROJECT_ID=lume-f4327
+PROJECT_NUMBER=1075430485377
+GOOGLE_CLOUD_PROJECT_NUMBER=1075430485377
 GOOGLE_CLOUD_LOCATION=europe-west4
 
-# Required - Your dedicated endpoint configuration
+# Required - Your dedicated endpoint configuration (Vertex AI format)
+ENDPOINT_ID=2159768491417141248
 SERA_MODEL_ID=2159768491417141248
 SERA_MODEL_NAME=PsychoCounsel LLaMA3 8B
 SERA_ENDPOINT_URL=https://2159768491417141248.europe-west4-1075430485377.prediction.vertexai.goog
@@ -25,6 +29,13 @@ GOOGLE_SERVICE_ACCOUNT_KEY={your-existing-json-key}
 NEXT_PUBLIC_SERA_MODEL_ID=2159768491417141248
 NEXT_PUBLIC_SERA_MODEL_NAME=PsychoCounsel LLaMA3 8B
 ```
+
+## ✅ **Variable Mapping (Vertex AI → Our App)**
+
+From your Vertex AI sample:
+- `ENDPOINT_ID="2159768491417141248"` → `ENDPOINT_ID` and `SERA_MODEL_ID`
+- `PROJECT_ID="1075430485377"` → `PROJECT_NUMBER` and `GOOGLE_CLOUD_PROJECT_NUMBER`
+- Your actual project ID → `GOOGLE_CLOUD_PROJECT_ID` and `PROJECT_ID`
 
 ## ✅ **What Changed**
 

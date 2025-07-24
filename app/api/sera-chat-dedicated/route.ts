@@ -5,8 +5,9 @@ import type { ChatMessage } from '../../../lib/vertex-ai-dedicated-endpoint'
 // Environment configuration for dedicated Vertex AI endpoint
 const DEDICATED_ENDPOINT_CONFIG = {
   projectId: process.env.GOOGLE_CLOUD_PROJECT_ID || process.env.PROJECT_ID || '',
+  projectNumber: process.env.GOOGLE_CLOUD_PROJECT_NUMBER || process.env.PROJECT_NUMBER || '',
   location: process.env.GOOGLE_CLOUD_LOCATION || 'europe-west4',
-  endpointId: process.env.SERA_MODEL_ID || '2159768491417141248',
+  endpointId: process.env.ENDPOINT_ID || process.env.SERA_MODEL_ID || '2159768491417141248',
   endpointUrl: process.env.SERA_ENDPOINT_URL || 'https://2159768491417141248.europe-west4-1075430485377.prediction.vertexai.goog',
   credentials: process.env.GOOGLE_SERVICE_ACCOUNT_KEY 
     ? JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY)
@@ -122,6 +123,7 @@ export async function GET(req: NextRequest) {
       modelDetails: modelAvailability, // Detailed info including errors
       config: {
         projectId: DEDICATED_ENDPOINT_CONFIG.projectId,
+        projectNumber: DEDICATED_ENDPOINT_CONFIG.projectNumber,
         location: DEDICATED_ENDPOINT_CONFIG.location,
         endpointId: DEDICATED_ENDPOINT_CONFIG.endpointId,
         endpointUrl: DEDICATED_ENDPOINT_CONFIG.endpointUrl,
